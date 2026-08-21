@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>پنل کارخانه | بازار صنعتی استان مرکزی</title>
+<title>پنل من | بازار صنعتی استان مرکزی</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0f3460">
 <link rel="stylesheet" href="assets/styles.css">
@@ -13,7 +13,7 @@
 <body>
 <header class="topbar">
     <div class="container">
-        <div class="brand">🏭 پنل <span>کارخانه</span></div>
+        <div class="brand">🏭 پنل <span>من</span></div>
         <a href="index.html" class="btn btn-outline btn-sm" style="background:transparent;color:#fff;border-color:rgba(255,255,255,0.4);">بازگشت به سایت</a>
     </div>
 </header>
@@ -24,7 +24,7 @@
     <section id="authBox">
         <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
             <button class="tab-btn active" id="loginTabBtn" onclick="showAuthForm('login')" style="flex:1;">ورود</button>
-            <button class="tab-btn" id="registerTabBtn" onclick="showAuthForm('register')" style="flex:1;">ثبت واحد جدید</button>
+            <button class="tab-btn" id="registerTabBtn" onclick="showAuthForm('register')" style="flex:1;">ثبت‌نام</button>
         </div>
 
         <div class="card" id="loginForm" style="padding:1.2rem;">
@@ -34,23 +34,18 @@
         </div>
 
         <div class="card" id="registerForm" style="padding:1.2rem; display:none;">
-            <div class="form-group"><label>نام واحد تولیدی *</label><input type="text" id="regName"></div>
+            <p style="font-size:0.8rem; color:var(--text-light); margin-bottom:1rem;">ثبت‌نام فقط چند ثانیه طول می‌کشد؛ بقیه اطلاعات را بعداً از همین پنل کامل می‌کنید.</p>
+            <div class="form-group"><label>می‌خواهید به چه عنوانی فعالیت کنید؟ *</label>
+                <select id="regRole">
+                    <option value="producer">تولیدکننده / واحد صنعتی</option>
+                    <option value="service">تأمین‌کننده خدمات (حسابدار، مشاور و...)</option>
+                    <option value="buyer">خریدار / متقاضی خرید</option>
+                    <option value="other">سایر</option>
+                </select>
+            </div>
+            <div class="form-group"><label>نام / نام شرکت *</label><input type="text" id="regName"></div>
             <div class="form-group"><label>شماره تماس *</label><input type="tel" id="regPhone" placeholder="09xxxxxxxxx"></div>
             <div class="form-group"><label>رمز عبور *</label><input type="password" id="regPassword"></div>
-            <div class="form-group"><label>شهرستان</label><select id="regCounty"></select></div>
-            <div class="form-group"><label>دسته‌بندی</label><select id="regCategory"></select></div>
-            <div class="form-group"><label>محصولات</label><input type="text" id="regProducts"></div>
-            <div class="form-group"><label>ظرفیت تولید</label><input type="text" id="regCapacity"></div>
-            <div class="form-group">
-                <label>لوگو (اختیاری)</label>
-                <label class="file-upload" id="regLogoLabel" for="regLogo">📷 برای انتخاب تصویر کلیک کنید</label>
-                <input type="file" id="regLogo" accept="image/*" style="display:none" onchange="uploadPreview(this,'regLogoLabel','📷')">
-            </div>
-            <div class="form-group">
-                <label>تصویر مجوز فعالیت (برای تأیید سریع‌تر)</label>
-                <label class="file-upload" id="regLicenseLabel" for="regLicense">📄 برای آپلود مجوز کلیک کنید</label>
-                <input type="file" id="regLicense" accept="image/*,.pdf" style="display:none" onchange="uploadPreview(this,'regLicenseLabel','📄')">
-            </div>
             <button class="btn btn-gold" style="width:100%;" onclick="doRegister()">ثبت‌نام</button>
         </div>
     </section>
@@ -62,21 +57,75 @@
             <button class="btn btn-outline btn-sm" onclick="logout()">خروج</button>
         </div>
         <div id="verifyNotice"></div>
+        <div id="completeProfileNotice"></div>
 
         <div class="stat-cards" id="statCards"></div>
-
         <canvas id="viewsChart" height="140" style="margin:1rem 0;"></canvas>
 
-        <h3 class="section-title" style="font-size:1.1rem;">ویرایش مشخصات واحد</h3>
+        <h3 class="section-title" style="font-size:1.1rem;">ثبت آگهی محصول جدید</h3>
         <div class="card" style="padding:1rem;">
-            <div class="form-group"><label>نام واحد</label><input type="text" id="editName"></div>
-            <div class="form-group"><label>محصولات</label><input type="text" id="editProducts"></div>
-            <div class="form-group"><label>ظرفیت تولید</label><input type="text" id="editCapacity"></div>
+            <div class="form-group"><label>عنوان محصول *</label><input type="text" id="newOfferTitle"></div>
+            <div class="form-group"><label>دسته‌بندی</label><select id="newOfferCategory"></select></div>
+            <div class="form-row">
+                <div class="form-group"><label>قیمت (تومان)</label><input type="number" id="newOfferPrice"></div>
+                <div class="form-group"><label>حداقل سفارش</label><input type="text" id="newOfferMoq"></div>
+            </div>
+            <div class="form-group">
+                <label>عکس محصول (اختیاری)</label>
+                <label class="file-upload" id="newOfferImageLabel" for="newOfferImage">📷 برای انتخاب تصویر کلیک کنید</label>
+                <input type="file" id="newOfferImage" accept="image/*" style="display:none" onchange="uploadPreview(this,'newOfferImageLabel','📷')">
+            </div>
+            <div class="form-group"><label>توضیحات</label><textarea id="newOfferDesc" rows="2"></textarea></div>
+            <button class="btn btn-gold" style="width:100%;" onclick="submitNewOffer()">ثبت آگهی</button>
+        </div>
+        <div id="myOffersList" style="margin:0.8rem 0;"></div>
+
+        <h3 class="section-title" style="font-size:1.1rem;">ثبت درخواست خرید</h3>
+        <div class="card" style="padding:1rem;">
+            <div class="form-group"><label>نام محصول موردنیاز *</label><input type="text" id="newReqProduct"></div>
+            <div class="form-row">
+                <div class="form-group"><label>مقدار *</label><input type="text" id="newReqQty"></div>
+                <div class="form-group"><label>واحد</label><select id="newReqUnit"><option>تن</option><option>کیلوگرم</option><option>متر</option><option>عدد</option></select></div>
+            </div>
+            <button class="btn btn-primary" style="width:100%;" onclick="submitNewRequest()">ثبت درخواست خرید</button>
+        </div>
+        <div id="myRequestsList" style="margin:0.8rem 0;"></div>
+
+        <h3 class="section-title" style="font-size:1.1rem;">ثبت درخواست خدمات</h3>
+        <div class="card" style="padding:1rem;">
+            <div class="form-group"><label>عنوان نیاز *</label><input type="text" id="newSrvRole" placeholder="مثلاً حسابدار صنعتی"></div>
+            <button class="btn btn-outline" style="width:100%;" onclick="submitNewService()">ثبت درخواست خدمات</button>
+        </div>
+        <div id="myServicesList" style="margin:0.8rem 0;"></div>
+
+        <h3 class="section-title" style="font-size:1.1rem;">استعلام‌های ارسالی من</h3>
+        <div id="myRfqsSentList"><div class="empty-state">استعلامی ارسال نکرده‌اید</div></div>
+
+        <h3 class="section-title" style="font-size:1.1rem;">استعلام‌های دریافتی (روی آگهی‌های من)</h3>
+        <div id="rfqsReceivedList"><div class="empty-state">استعلامی دریافت نشده</div></div>
+
+        <h3 class="section-title" style="font-size:1.1rem;">تکمیل / ویرایش مشخصات</h3>
+        <div class="card" style="padding:1rem;">
+            <div class="form-group"><label>نام</label><input type="text" id="editName"></div>
+            <div class="form-group"><label>شهرستان</label><select id="editCounty"></select></div>
+            <div class="form-group"><label>دسته‌بندی</label><select id="editCategory"></select></div>
+            <div class="form-group"><label>محصولات / خدمات</label><input type="text" id="editProducts"></div>
+            <div class="form-group"><label>ظرفیت تولید (اگر تولیدکننده هستید)</label><input type="text" id="editCapacity"></div>
+            <div class="form-group">
+                <label>لوگو (اختیاری)</label>
+                <label class="file-upload" id="editLogoLabel" for="editLogo">📷 برای انتخاب تصویر کلیک کنید</label>
+                <input type="file" id="editLogo" accept="image/*" style="display:none" onchange="uploadPreview(this,'editLogoLabel','📷')">
+            </div>
+            <div class="form-group">
+                <label>تصویر مجوز فعالیت (برای تأیید سریع‌تر)</label>
+                <label class="file-upload" id="editLicenseLabel" for="editLicense">📄 برای آپلود مجوز کلیک کنید</label>
+                <input type="file" id="editLicense" accept="image/*,.pdf" style="display:none" onchange="uploadPreview(this,'editLicenseLabel','📄')">
+            </div>
             <button class="btn btn-primary" style="width:100%;" onclick="saveProfileEdit()">ارسال برای تایید</button>
             <p style="font-size:0.75rem; color:var(--text-light); margin-top:0.5rem;">تغییرات پس از تایید مدیر روی سایت اعمال می‌شود.</p>
         </div>
 
-        <h3 class="section-title" style="font-size:1.1rem;">پرزنت واحد تولیدی / محصول</h3>
+        <h3 class="section-title" style="font-size:1.1rem;">پرزنت واحد / محصول</h3>
         <div class="card" style="padding:1rem;">
             <div class="form-group"><label>لینک ویدیو (آپارات/یوتیوب) یا آدرس فایل</label><input type="text" id="presentationUrl" placeholder="https://..."></div>
             <div class="form-group"><label>نوع</label><select id="presentationType"><option value="video_link">لینک ویدیو</option><option value="file">فایل</option></select></div>

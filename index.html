@@ -20,7 +20,7 @@
 <header class="topbar">
     <div class="container">
         <div class="brand">🏭 بازار صنعتی <span>استان مرکزی</span></div>
-        <button class="btn btn-outline btn-sm" style="background:transparent;color:#fff;border-color:rgba(255,255,255,0.4);" onclick="location.href='company.html'">پنل کارخانه</button>
+        <span id="authArea"></span>
     </div>
 </header>
 
@@ -49,9 +49,9 @@
         <div id="adSlotHome"></div>
 
         <div style="display:flex; gap:0.6rem; flex-wrap:wrap; justify-content:center; margin:1rem 0 0.5rem;">
-            <button class="btn btn-gold" onclick="openModal('supplyModal')">+ عرضه محصول</button>
-            <button class="btn btn-primary" onclick="openModal('purchaseRequestModal')">+ درخواست خرید</button>
-            <button class="btn btn-outline" onclick="openModal('serviceRequestModal')">+ درخواست خدمات</button>
+            <button class="btn btn-gold" onclick="openModalAuth('supplyModal', 'ثبت آگهی')">+ عرضه محصول</button>
+            <button class="btn btn-primary" onclick="openModalAuth('purchaseRequestModal', 'ثبت درخواست خرید')">+ درخواست خرید</button>
+            <button class="btn btn-outline" onclick="openModalAuth('serviceRequestModal', 'ثبت درخواست خدمات')">+ درخواست خدمات</button>
         </div>
 
         <div class="section-head-row">
@@ -79,7 +79,7 @@
         <div class="filter-bar">
             <select id="offerCounty" onchange="loadOffers()"><option value="">همه شهرستان‌ها</option></select>
             <select id="offerCategory" onchange="loadOffers()"><option value="">همه دسته‌ها</option></select>
-            <button class="btn btn-gold btn-sm" onclick="openModal('supplyModal')">+ عرضه محصول</button>
+            <button class="btn btn-gold btn-sm" onclick="openModalAuth('supplyModal', 'ثبت آگهی')">+ عرضه محصول</button>
         </div>
         <div id="offersList" class="cards-grid"><div class="loading">در حال بارگذاری...</div></div>
     </section>
@@ -87,7 +87,7 @@
     <!-- ===================== درخواست خرید ===================== -->
     <section id="tab-requests" class="tab-page" style="display:none;">
         <h2 class="section-title">📋 درخواست‌های خرید</h2>
-        <div style="margin-bottom:1rem;"><button class="btn btn-primary btn-sm" onclick="openModal('purchaseRequestModal')">+ ثبت درخواست خرید</button></div>
+        <div style="margin-bottom:1rem;"><button class="btn btn-primary btn-sm" onclick="openModalAuth('purchaseRequestModal', 'ثبت درخواست خرید')">+ ثبت درخواست خرید</button></div>
         <div id="requestsList" class="cards-grid"><div class="loading">در حال بارگذاری...</div></div>
     </section>
 
@@ -95,7 +95,7 @@
     <section id="tab-services" class="tab-page" style="display:none;">
         <h2 class="section-title">🧑‍💼 درخواست خدمات و نیروی تخصصی</h2>
         <p style="color:var(--text-light); font-size:0.85rem; margin-bottom:0.8rem;">مثلاً نیاز به حسابدار، مدیر تولید، مشاور یا هر خدمت تخصصی دیگر</p>
-        <div style="margin-bottom:1rem;"><button class="btn btn-primary btn-sm" onclick="openModal('serviceRequestModal')">+ ثبت درخواست خدمات</button></div>
+        <div style="margin-bottom:1rem;"><button class="btn btn-primary btn-sm" onclick="openModalAuth('serviceRequestModal', 'ثبت درخواست خدمات')">+ ثبت درخواست خدمات</button></div>
         <div id="servicesList" class="cards-grid"><div class="loading">در حال بارگذاری...</div></div>
     </section>
 
@@ -123,19 +123,14 @@
             <div class="step-label" id="spStepLabel">مرحله ۱ از ۲ — مشخصات محصول</div>
             <div class="form-step active" id="spStep1">
                 <div class="form-group"><label>عنوان محصول *</label><input type="text" id="spTitle" placeholder="مثلاً میلگرد A3"></div>
-                <div class="form-group"><label>نام شرکت شما *</label>
-                    <div style="display:flex; gap:0.4rem;">
-                        <div class="combo-wrap" style="position:relative; flex:1;">
-                            <input type="text" id="spCompany" placeholder="جستجو یا انتخاب کنید" autocomplete="off" oninput="filterCompanyCombo('spCompany')" onfocus="filterCompanyCombo('spCompany')">
-                            <div class="combo-list" id="spCompanyList"></div>
-                        </div>
-                        <a href="company.html#register" target="_blank" class="btn btn-outline btn-sm" style="white-space:nowrap;">+ ثبت واحد جدید</a>
-                    </div>
-                </div>
-                <div class="form-group"><label>شماره تماس *</label><input type="tel" id="spPhone" placeholder="09xxxxxxxxx"></div>
                 <div class="form-row">
                     <div class="form-group"><label>شهرستان *</label><select id="spCounty"></select></div>
                     <div class="form-group"><label>دسته‌بندی *</label><select id="spCategory"></select></div>
+                </div>
+                <div class="form-group">
+                    <label>عکس محصول (اختیاری)</label>
+                    <label class="file-upload" id="spImageLabel" for="spImage">📷 برای انتخاب تصویر کلیک کنید</label>
+                    <input type="file" id="spImage" accept="image/*" style="display:none" onchange="filePreview(this,'spImageLabel','📷')">
                 </div>
                 <div class="modal-nav"><button class="btn btn-primary" onclick="spGoStep(2)">مرحله بعد ←</button></div>
             </div>
@@ -183,19 +178,6 @@
                     <div class="form-group"><label>شرایط پرداخت</label><select id="prPayment"><option>نقد</option><option>نسیه</option><option>نقد و نسیه</option></select></div>
                 </div>
                 <div class="form-group"><label>توضیحات</label><textarea id="prDescription" rows="2"></textarea></div>
-                <div class="form-row">
-                    <div class="form-group"><label>نام شرکت *</label>
-                        <div style="display:flex; gap:0.4rem;">
-                            <div class="combo-wrap" style="position:relative; flex:1;">
-                                <input type="text" id="prCompany" placeholder="جستجو یا انتخاب کنید" autocomplete="off" oninput="filterCompanyCombo('prCompany')" onfocus="filterCompanyCombo('prCompany')">
-                                <div class="combo-list" id="prCompanyList"></div>
-                            </div>
-                            <a href="company.html#register" target="_blank" class="btn btn-outline btn-sm" style="white-space:nowrap;">+ ثبت واحد جدید</a>
-                        </div>
-                    </div>
-                    <div class="form-group"><label>نام شخص مسئول</label><input type="text" id="prContactPerson"></div>
-                </div>
-                <div class="form-group"><label>شماره تماس *</label><input type="tel" id="prPhone" placeholder="09xxxxxxxxx"></div>
                 <div class="modal-nav">
                     <button class="btn btn-outline" onclick="prGoStep(1)">→ مرحله قبل</button>
                     <button class="btn btn-gold" onclick="submitPurchaseRequest()">ثبت درخواست</button>
@@ -216,18 +198,6 @@
             </div>
             <div class="form-group"><label>توضیحات</label><textarea id="srDescription" rows="2"></textarea></div>
             <div class="form-group"><label>شهرستان</label><select id="srCounty"></select></div>
-            <div class="form-row">
-                <div class="form-group"><label>نام شرکت *</label>
-                    <div style="display:flex; gap:0.4rem;">
-                        <div class="combo-wrap" style="position:relative; flex:1;">
-                            <input type="text" id="srCompany" placeholder="جستجو یا انتخاب کنید" autocomplete="off" oninput="filterCompanyCombo('srCompany')" onfocus="filterCompanyCombo('srCompany')">
-                            <div class="combo-list" id="srCompanyList"></div>
-                        </div>
-                        <a href="company.html#register" target="_blank" class="btn btn-outline btn-sm" style="white-space:nowrap;">+ ثبت واحد جدید</a>
-                    </div>
-                </div>
-                <div class="form-group"><label>شماره تماس *</label><input type="tel" id="srPhone" placeholder="09xxxxxxxxx"></div>
-            </div>
             <button class="btn btn-gold" style="width:100%;" onclick="submitServiceRequest()">ثبت درخواست</button>
         </div>
     </div>
@@ -239,12 +209,23 @@
         <div class="modal-header"><h3>درخواست استعلام قیمت</h3><button class="modal-close" onclick="closeModal('rfqModal')">&times;</button></div>
         <div class="modal-body">
             <input type="hidden" id="rfqOfferId">
-            <div class="form-group"><label>نام شرکت شما</label><input type="text" id="rfqCompany"></div>
-            <div class="form-group"><label>نام و نام خانوادگی</label><input type="text" id="rfqPerson"></div>
-            <div class="form-group"><label>شماره تماس *</label><input type="tel" id="rfqPhone" placeholder="09xxxxxxxxx"></div>
             <div class="form-group"><label>مقدار موردنیاز</label><input type="text" id="rfqQuantity"></div>
             <div class="form-group"><label>توضیح</label><textarea id="rfqMessage" rows="2"></textarea></div>
             <button class="btn btn-gold" style="width:100%;" onclick="submitRfq()">ارسال استعلام</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== مودال: تماس با ما ===================== -->
+<div class="modal-overlay" id="contactModal">
+    <div class="modal">
+        <div class="modal-header"><h3>تماس با ما / پیشنهاد و انتقاد</h3><button class="modal-close" onclick="closeModal('contactModal')">&times;</button></div>
+        <div class="modal-body">
+            <div class="form-group"><label>نام (اختیاری)</label><input type="text" id="contactName"></div>
+            <div class="form-group"><label>شماره تماس (اختیاری)</label><input type="tel" id="contactPhone"></div>
+            <div class="form-group"><label>موضوع</label><input type="text" id="contactSubject"></div>
+            <div class="form-group"><label>پیام *</label><textarea id="contactMessage" rows="3"></textarea></div>
+            <button class="btn btn-primary" style="width:100%;" onclick="submitContact()">ارسال پیام</button>
         </div>
     </div>
 </div>
@@ -288,8 +269,9 @@
 
 <div class="toast" id="toast"></div>
 
-<div style="text-align:center; padding:1.5rem 0; font-size:0.75rem; color:var(--text-light);">
-    یک واحد تولیدی یا شرکت تبلیغاتی هستید؟ <a href="#" onclick="openModal('adRequestModal'); return false;" style="color:var(--gold-hover); font-weight:700;">درخواست تبلیغ در صفحه اصلی</a>
+<div style="text-align:center; padding:1.5rem 0; font-size:0.75rem; color:var(--text-light); display:flex; flex-direction:column; gap:0.4rem;">
+    <span>یک واحد تولیدی یا شرکت تبلیغاتی هستید؟ <a href="#" onclick="openModal('adRequestModal'); return false;" style="color:var(--gold-hover); font-weight:700;">درخواست تبلیغ در صفحه اصلی</a></span>
+    <span><a href="#" onclick="openModal('contactModal'); return false;" style="color:var(--primary); font-weight:700;">تماس با ما / پیشنهاد و انتقاد</a></span>
 </div>
 
 <script src="assets/app.js"></script>
