@@ -73,6 +73,7 @@ function trackView(path) {
 async function loadLookups() {
     try {
         const [counties, categories, companies] = await Promise.all([apiGet('/api/counties'), apiGet('/api/categories'), apiGet('/api/companies').catch(() => [])]);
+        companiesCache = companies || [];
         const countySelects = ['spCounty', 'prCounty', 'srCounty', 'offerCounty'];
         countySelects.forEach(id => {
             const el = document.getElementById(id);
@@ -93,6 +94,36 @@ async function loadLookups() {
         if (dl) dl.innerHTML = companies.map(c => `<option value="${esc(c.name)}"></option>`).join('');
     } catch (e) { /* در صورت خطا، فرم‌ها همچنان قابل استفاده‌اند */ }
 }
+
+// ------------------------------------------------------------------
+// کشوی سفارشی جستجوی نام شرکت (به‌جای datalist که روی موبایل نامطمئنه)
+// ------------------------------------------------------------------
+let companiesCache = [];
+function filterCompanyCombo(inputId) {
+    const input = document.getElementById(inputId);
+    const listEl = document.getElementById(inputId + 'List');
+    if (!input || !listEl) return;
+    const q = input.value.trim();
+    const matches = q ? companiesCache.filter(c => c.name.includes(q)) : companiesCache;
+    let html = matches.length
+        ? matches.slice(0, 8).map(c => `<div class="combo-item" onclick="selectCompanyCombo('${inputId}', this.textContent)">${esc(c.name)}</div>`).join('')
+        : `<div class="combo-item combo-empty">${companiesCache.length ? 'نتیجه‌ای یافت نشد' : 'هنوز واحدی ثبت نشده'}</div>`;
+    html += `<div class="combo-item combo-add" onclick="window.open('company.html#register','_blank')">+ ثبت واحد جدید</div>`;
+    listEl.innerHTML = html;
+    listEl.style.display = 'block';
+}
+function selectCompanyCombo(inputId, name) {
+    document.getElementById(inputId).value = name;
+    document.getElementById(inputId + 'List').style.display = 'none';
+}
+document.addEventListener('click', (e) => {
+    document.querySelectorAll('.combo-wrap').forEach(wrap => {
+        if (!wrap.contains(e.target)) {
+            const list = wrap.querySelector('.combo-list');
+            if (list) list.style.display = 'none';
+        }
+    });
+});
 
 // ------------------------------------------------------------------
 // کارت‌ها
