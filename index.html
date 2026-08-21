@@ -121,7 +121,10 @@
                 <div class="form-group"><label>عنوان محصول *</label><input type="text" id="spTitle" placeholder="مثلاً میلگرد A3"></div>
                 <div class="form-group"><label>نام شرکت شما *</label>
                     <div style="display:flex; gap:0.4rem;">
-                        <input type="text" id="spCompany" list="companiesDatalist" placeholder="جستجو یا انتخاب کنید" style="flex:1;">
+                        <div class="combo-wrap" style="position:relative; flex:1;">
+                            <input type="text" id="spCompany" placeholder="جستجو یا انتخاب کنید" autocomplete="off" oninput="filterCompanyCombo('spCompany')" onfocus="filterCompanyCombo('spCompany')">
+                            <div class="combo-list" id="spCompanyList"></div>
+                        </div>
                         <a href="company.html#register" target="_blank" class="btn btn-outline btn-sm" style="white-space:nowrap;">+ ثبت واحد جدید</a>
                     </div>
                 </div>
@@ -179,7 +182,10 @@
                 <div class="form-row">
                     <div class="form-group"><label>نام شرکت *</label>
                         <div style="display:flex; gap:0.4rem;">
-                            <input type="text" id="prCompany" list="companiesDatalist" placeholder="جستجو یا انتخاب کنید" style="flex:1;">
+                            <div class="combo-wrap" style="position:relative; flex:1;">
+                                <input type="text" id="prCompany" placeholder="جستجو یا انتخاب کنید" autocomplete="off" oninput="filterCompanyCombo('prCompany')" onfocus="filterCompanyCombo('prCompany')">
+                                <div class="combo-list" id="prCompanyList"></div>
+                            </div>
                             <a href="company.html#register" target="_blank" class="btn btn-outline btn-sm" style="white-space:nowrap;">+ ثبت واحد جدید</a>
                         </div>
                     </div>
@@ -209,7 +215,10 @@
             <div class="form-row">
                 <div class="form-group"><label>نام شرکت *</label>
                     <div style="display:flex; gap:0.4rem;">
-                        <input type="text" id="srCompany" list="companiesDatalist" placeholder="جستجو یا انتخاب کنید" style="flex:1;">
+                        <div class="combo-wrap" style="position:relative; flex:1;">
+                            <input type="text" id="srCompany" placeholder="جستجو یا انتخاب کنید" autocomplete="off" oninput="filterCompanyCombo('srCompany')" onfocus="filterCompanyCombo('srCompany')">
+                            <div class="combo-list" id="srCompanyList"></div>
+                        </div>
                         <a href="company.html#register" target="_blank" class="btn btn-outline btn-sm" style="white-space:nowrap;">+ ثبت واحد جدید</a>
                     </div>
                 </div>
@@ -274,7 +283,6 @@
 </div>
 
 <div class="toast" id="toast"></div>
-<datalist id="companiesDatalist"></datalist>
 
 <div style="text-align:center; padding:1.5rem 0; font-size:0.75rem; color:var(--text-light);">
     یک واحد تولیدی یا شرکت تبلیغاتی هستید؟ <a href="#" onclick="openModal('adRequestModal'); return false;" style="color:var(--gold-hover); font-weight:700;">درخواست تبلیغ در صفحه اصلی</a>
