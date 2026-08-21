@@ -5,6 +5,7 @@ function showToast(msg, type = '') {
     setTimeout(() => t.classList.remove('show'), 3500);
 }
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+const ROLE_LABELS = { producer: 'تولیدکننده', service: 'خدمات‌دهنده', buyer: 'خریدار', other: 'سایر' };
 function getToken() { return sessionStorage.getItem('adminToken'); }
 function setToken(t) { sessionStorage.setItem('adminToken', t); }
 function clearToken() { sessionStorage.removeItem('adminToken'); }
@@ -71,7 +72,7 @@ function switchAdminTab(tab) {
     document.querySelectorAll('#adminTabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     const loaders = {
         overview: loadOverview, pending: loadPending, companies: loadCompanies, offers: loadOffers,
-        requests: loadRequests, services: loadServices, ads: loadAds, files: loadFiles, lookups: loadLookups,
+        requests: loadRequests, rfqs: loadRfqs, services: loadServices, ads: loadAds, messages: loadMessages, files: loadFiles, lookups: loadLookups,
     };
     loaders[tab] && loaders[tab]();
 }
@@ -144,9 +145,10 @@ async function loadCompanies() {
     try {
         const items = await apiGet('/api/admin/companies');
         el.innerHTML = `<h2 class="section-title">🏭 واحدهای تولیدی</h2><div class="table-wrap"><table class="admin-table">
-            <tr><th>نام</th><th>شهرستان</th><th>وضعیت</th><th>پرزنت</th><th>عملیات</th></tr>
+            <tr><th>نام</th><th>نقش</th><th>شهرستان</th><th>وضعیت</th><th>پرزنت</th><th>عملیات</th></tr>
             ${items.map(c => `<tr>
                 <td>${esc(c.name)}<br><small style="color:var(--text-light)">${esc(c.phone)}</small></td>
+                <td>${esc(ROLE_LABELS[c.role] || c.role || '-')}</td>
                 <td>${esc(c.county||'-')}</td>
                 <td>${c.verified ? '✔ تأیید شده' : 'در انتظار'} / ${c.active ? 'فعال' : 'غیرفعال'}</td>
                 <td>${c.presentation_status === 'pending' ? `<button class="btn btn-sm btn-outline" onclick="decidePresentation(${c.id},'approved')">تایید پرزنت</button> <button class="btn btn-sm btn-danger" onclick="decidePresentation(${c.id},'rejected')">رد</button>` : (c.presentation_status||'-')}</td>
@@ -206,16 +208,68 @@ async function loadRequests() {
     el.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
     try {
         const items = await apiGet('/api/admin/requests');
-        el.innerHTML = `<h2 class="section-title">📋 درخواست‌های خرید</h2><div class="table-wrap"><table class="admin-table">
-            <tr><th>محصول</th><th>شرکت</th><th>مقدار</th><th>عملیات</th></tr>
-            ${items.map(r => `<tr><td>${esc(r.product)}</td><td>${esc(r.company)}</td><td>${esc(r.quantity)} ${esc(r.unit||'')}</td>
-                <td><button class="btn btn-sm btn-danger" onclick="deleteRequest(${r.id})">حذف</button></td></tr>`).join('')}
-        </table></div>`;
+        el.innerHTML = `<h2 class="section-title">📋 درخواست‌های خرید</h2>` + items.map(r => `
+            <div class="card" style="padding:0.9rem; margin-bottom:0.6rem;">
+                <div style="display:flex; justify-content:space-between;">
+                    <b>${esc(r.product)}</b>
+                    <button class="btn btn-sm btn-danger" onclick="deleteRequest(${r.id})">حذف</button>
+                </div>
+                <div style="font-size:0.82rem; color:var(--text-light);">${esc(r.company)} • ${esc(r.quantity)} ${esc(r.unit||'')}</div>
+                ${r.responses && r.responses.length
+                    ? `<div style="margin-top:0.5rem; font-size:0.82rem;">✅ پاسخ‌ها: ${r.responses.map(rr => `${esc(rr.company_name)} (<a href="tel:${esc(rr.phone)}">${esc(rr.phone)}</a>)`).join('، ')}</div>`
+                    : `<div style="margin-top:0.4rem; font-size:0.8rem; color:var(--text-light);">هنوز پاسخی نیامده</div>`}
+            </div>`).join('') || '<div class="empty-state">درخواستی ثبت نشده</div>';
     } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
 }
 async function deleteRequest(id) {
     if (!confirm('حذف شود؟')) return;
     try { await apiSend('DELETE', `/api/admin/requests/${id}`); loadRequests(); } catch (e) { showToast(e.message, 'error'); }
+}
+
+// ------------------------------------------------------------------
+// استعلام‌ها (RFQ)
+// ------------------------------------------------------------------
+async function loadRfqs() {
+    const el = document.getElementById('admin-rfqs');
+    el.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
+    try {
+        const items = await apiGet('/api/admin/rfqs');
+        el.innerHTML = `<h2 class="section-title">📨 استعلام‌های قیمت</h2><div class="table-wrap"><table class="admin-table">
+            <tr><th>آگهی</th><th>درخواست‌کننده</th><th>تماس</th><th>مقدار</th><th>وضعیت</th></tr>
+            ${items.map(r => `<tr><td>${esc(r.offer_title)}</td><td>${esc(r.company_name||'-')}</td><td>${esc(r.phone)}</td><td>${esc(r.quantity||'-')}</td><td>${esc(r.status)}</td></tr>`).join('')}
+        </table></div>` || '<div class="empty-state">استعلامی ثبت نشده</div>';
+    } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
+}
+
+// ------------------------------------------------------------------
+// پیام‌های تماس/پیشنهاد/پشتیبانی
+// ------------------------------------------------------------------
+async function loadMessages() {
+    const el = document.getElementById('admin-messages');
+    el.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
+    try {
+        const items = await apiGet('/api/admin/contact-messages');
+        el.innerHTML = `<h2 class="section-title">✉️ پیام‌های تماس/پیشنهاد</h2>` + (items.map(m => `
+            <div class="card" style="padding:0.9rem; margin-bottom:0.6rem;">
+                <div style="display:flex; justify-content:space-between;">
+                    <b>${esc(m.subject || 'بدون موضوع')}</b>
+                    <span class="badge ${m.status === 'خوانده‌نشده' ? 'badge-urgent' : 'badge-status'}">${esc(m.status)}</span>
+                </div>
+                <div style="font-size:0.82rem; color:var(--text-light); margin:0.3rem 0;">${esc(m.name||'ناشناس')} ${m.phone ? '— ' + esc(m.phone) : ''}</div>
+                <p style="font-size:0.88rem;">${esc(m.message)}</p>
+                <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+                    <button class="btn btn-sm btn-outline" onclick="setMessageStatus(${m.id},'خوانده‌شد')">علامت خوانده‌شد</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteMessage(${m.id})">حذف</button>
+                </div>
+            </div>`).join('') || '<div class="empty-state">پیامی دریافت نشده</div>');
+    } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
+}
+async function setMessageStatus(id, status) {
+    try { await apiSend('PUT', `/api/admin/contact-messages/${id}`, { status }); loadMessages(); } catch (e) { showToast(e.message, 'error'); }
+}
+async function deleteMessage(id) {
+    if (!confirm('حذف شود؟')) return;
+    try { await apiSend('DELETE', `/api/admin/contact-messages/${id}`); loadMessages(); } catch (e) { showToast(e.message, 'error'); }
 }
 
 // ------------------------------------------------------------------

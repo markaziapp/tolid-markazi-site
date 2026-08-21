@@ -139,7 +139,7 @@ a { color: inherit; text-decoration: none; }
 
 /* آگهی تبلیغاتی */
 .ad-slot { background: linear-gradient(135deg, #fff7ed, #fffbeb); border: 1px solid var(--gold); border-radius: var(--radius); padding: 1rem; margin: 1rem 0; display: flex; gap: 1rem; align-items: center; }
-.ad-slot img { width: 90px; height: 60px; object-fit: cover; border-radius: 8px; }
+.ad-slot img { width: 110px; height: 80px; object-fit: cover; border-radius: 8px; }
 .ad-slot .ad-tag { font-size: 0.7rem; color: var(--gold-hover); font-weight: 700; }
 
 /* داشبورد کارتی */

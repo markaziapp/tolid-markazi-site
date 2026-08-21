@@ -5,13 +5,42 @@ function api(path) {
     return (window.API_BASE || '') + path;
 }
 
+// ------------------------------------------------------------------
+// وضعیت ورود (اشتراکی با پنل من — همان کلید localStorage)
+// ------------------------------------------------------------------
+function getToken() { return localStorage.getItem('companyToken'); }
+function setToken(t) { localStorage.setItem('companyToken', t); }
+function clearToken() { localStorage.removeItem('companyToken'); }
+function isLoggedIn() { return !!getToken(); }
+
+function requireLogin(actionLabel) {
+    if (isLoggedIn()) return true;
+    showToast('برای ' + actionLabel + ' ابتدا باید ثبت‌نام یا وارد شوید', 'error');
+    setTimeout(() => { location.href = 'company.html'; }, 900);
+    return false;
+}
+
+async function renderAuthArea() {
+    const el = document.getElementById('authArea');
+    if (!el) return;
+    if (!isLoggedIn()) {
+        el.innerHTML = `<button class="btn btn-outline btn-sm" style="background:transparent;color:#fff;border-color:rgba(255,255,255,0.4);" onclick="location.href='company.html'">ثبت‌نام / ورود</button>`;
+        return;
+    }
+    el.innerHTML = `<button class="btn btn-outline btn-sm" style="background:transparent;color:#fff;border-color:rgba(255,255,255,0.4);" onclick="location.href='company.html'">پنل من</button>`;
+}
+
 async function apiGet(path) {
-    const res = await fetch(api(path));
+    const headers = {};
+    if (getToken()) headers.Authorization = 'Bearer ' + getToken();
+    const res = await fetch(api(path), { headers });
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'خطا در دریافت اطلاعات');
     return res.json();
 }
 async function apiPost(path, body) {
-    const res = await fetch(api(path), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const headers = { 'Content-Type': 'application/json' };
+    if (getToken()) headers.Authorization = 'Bearer ' + getToken();
+    const res = await fetch(api(path), { method: 'POST', headers, body: JSON.stringify(body) });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'خطا در ثبت اطلاعات');
     return data;
@@ -24,18 +53,45 @@ function showToast(msg, type = '') {
     setTimeout(() => t.classList.remove('show'), 3500);
 }
 
-function openModal(id) { document.getElementById(id).classList.add('open'); }
+function openModal(id) {
+    document.getElementById(id).classList.add('open');
+}
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// مودال‌هایی که ورود لازم دارند، قبل از باز شدن چک می‌شوند
+function openModalAuth(id, actionLabel) {
+    if (!requireLogin(actionLabel)) return;
+    openModal(id);
+}
+
+async function compressImageFile(file, maxDim = 900, quality = 0.6) {
+    if (!file || !file.type.startsWith('image/')) return file;
+    const bitmap = await createImageBitmap(file).catch(() => null);
+    if (!bitmap) return file;
+    let { width, height } = bitmap;
+    if (width > maxDim || height > maxDim) {
+        const scale = maxDim / Math.max(width, height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = width; canvas.height = height;
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+    return blob || file;
+}
 
 function filePreview(input, labelId, icon) {
     const label = document.getElementById(labelId);
     if (input.files && input.files[0]) { label.textContent = '✅ ' + input.files[0].name; label.classList.add('has-file'); }
     else { label.textContent = icon + ' برای انتخاب تصویر کلیک کنید'; label.classList.remove('has-file'); }
 }
-async function uploadFile(inputEl) {
+async function uploadFile(inputEl, compress) {
     if (!inputEl.files || !inputEl.files[0]) return '';
+    const original = inputEl.files[0];
+    const toSend = compress ? await compressImageFile(original) : original;
     const fd = new FormData();
-    fd.append('file', inputEl.files[0]);
+    fd.append('file', toSend, original.name.replace(/\.[^.]+$/, '') + '.jpg');
     const res = await fetch(api('/api/upload'), { method: 'POST', body: fd });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'خطا در آپلود فایل');
@@ -72,8 +128,7 @@ function trackView(path) {
 // ------------------------------------------------------------------
 async function loadLookups() {
     try {
-        const [counties, categories, companies] = await Promise.all([apiGet('/api/counties'), apiGet('/api/categories'), apiGet('/api/companies').catch(() => [])]);
-        companiesCache = companies || [];
+        const [counties, categories] = await Promise.all([apiGet('/api/counties'), apiGet('/api/categories')]);
         const countySelects = ['spCounty', 'prCounty', 'srCounty', 'offerCounty'];
         countySelects.forEach(id => {
             const el = document.getElementById(id);
@@ -90,40 +145,8 @@ async function loadLookups() {
             el.innerHTML = (keepFirst ? '<option value="">همه دسته‌ها</option>' : '') +
                 categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
         });
-        const dl = document.getElementById('companiesDatalist');
-        if (dl) dl.innerHTML = companies.map(c => `<option value="${esc(c.name)}"></option>`).join('');
     } catch (e) { /* در صورت خطا، فرم‌ها همچنان قابل استفاده‌اند */ }
 }
-
-// ------------------------------------------------------------------
-// کشوی سفارشی جستجوی نام شرکت (به‌جای datalist که روی موبایل نامطمئنه)
-// ------------------------------------------------------------------
-let companiesCache = [];
-function filterCompanyCombo(inputId) {
-    const input = document.getElementById(inputId);
-    const listEl = document.getElementById(inputId + 'List');
-    if (!input || !listEl) return;
-    const q = input.value.trim();
-    const matches = q ? companiesCache.filter(c => c.name.includes(q)) : companiesCache;
-    let html = matches.length
-        ? matches.slice(0, 8).map(c => `<div class="combo-item" onclick="selectCompanyCombo('${inputId}', this.textContent)">${esc(c.name)}</div>`).join('')
-        : `<div class="combo-item combo-empty">${companiesCache.length ? 'نتیجه‌ای یافت نشد' : 'هنوز واحدی ثبت نشده'}</div>`;
-    html += `<div class="combo-item combo-add" onclick="window.open('company.html#register','_blank')">+ ثبت واحد جدید</div>`;
-    listEl.innerHTML = html;
-    listEl.style.display = 'block';
-}
-function selectCompanyCombo(inputId, name) {
-    document.getElementById(inputId).value = name;
-    document.getElementById(inputId + 'List').style.display = 'none';
-}
-document.addEventListener('click', (e) => {
-    document.querySelectorAll('.combo-wrap').forEach(wrap => {
-        if (!wrap.contains(e.target)) {
-            const list = wrap.querySelector('.combo-list');
-            if (list) list.style.display = 'none';
-        }
-    });
-});
 
 // ------------------------------------------------------------------
 // کارت‌ها
@@ -158,8 +181,10 @@ function offerCard(offer) {
     const verified = offer.company_verified ? '<span class="badge badge-verified">✔ تأیید شده</span>' : '';
     let specs = {};
     try { specs = JSON.parse(offer.specs_json || '{}'); } catch {}
+    const img = offer.image_url ? `<img src="${esc(offer.image_url)}" alt="${esc(offer.title)}" style="width:100%; height:140px; object-fit:cover; border-radius:8px 8px 0 0;">` : '';
     return `
     <div class="card ${offer.featured_approved ? 'featured' : ''}">
+        ${img}
         <div class="card-header">
             <div><div class="card-title">${esc(offer.title)}</div><div class="card-subtitle">${esc(offer.company_name)} ${verified}</div></div>
             <div>${featured}${offer.category ? `<span class="badge badge-category">${esc(offer.category)}</span>` : ''}</div>
@@ -285,11 +310,11 @@ async function loadAds() {
         const ads = await apiGet('/api/ads/active');
         const el = document.getElementById('adSlotHome');
         if (!ads.length) { el.innerHTML = ''; return; }
-        const ad = ads[0];
-        let inner = '';
-        if (ad.ad_type === 'image' && ad.image_url) inner = `<img src="${esc(ad.image_url)}" alt="${esc(ad.title||'تبلیغ')}">`;
-        if (ad.ad_type === 'video' && ad.video_embed_url) inner = `<a href="${esc(ad.video_embed_url)}" target="_blank" class="btn btn-outline btn-sm">مشاهده ویدیو</a>`;
-        el.innerHTML = `
+        el.innerHTML = ads.slice(0, 2).map(ad => {
+            let inner = '';
+            if (ad.ad_type === 'image' && ad.image_url) inner = `<img src="${esc(ad.image_url)}" alt="${esc(ad.title||'تبلیغ')}" style="width:110px; height:80px; object-fit:cover; border-radius:8px;">`;
+            if (ad.ad_type === 'video' && ad.video_embed_url) inner = `<a href="${esc(ad.video_embed_url)}" target="_blank" class="btn btn-outline btn-sm">مشاهده ویدیو</a>`;
+            return `
             <div class="ad-slot">
                 ${inner}
                 <div>
@@ -298,6 +323,7 @@ async function loadAds() {
                     <div style="font-size:0.82rem; color:var(--text-light);">${esc(ad.body_text||'')}</div>
                 </div>
             </div>`;
+        }).join('');
     } catch { /* بی‌صدا رد می‌شویم؛ نبود تبلیغ مشکلی نیست */ }
 }
 
@@ -340,92 +366,110 @@ function prGoStep(step) {
 // ارسال فرم‌ها
 // ------------------------------------------------------------------
 async function submitSupply() {
-    const company = document.getElementById('spCompany').value.trim();
-    const phone = document.getElementById('spPhone').value.trim();
-    if (!company || !phone) { showToast('نام شرکت و شماره تماس الزامی است', 'error'); return; }
+    const title = document.getElementById('spTitle').value.trim();
+    if (!title) { showToast('عنوان محصول الزامی است', 'error'); return; }
     try {
+        let imageUrl = '';
+        try { imageUrl = await uploadFile(document.getElementById('spImage'), true); }
+        catch (e) { showToast('آپلود عکس ناموفق بود: ' + e.message, 'error'); return; }
         await apiPost('/api/offers', {
-            title: document.getElementById('spTitle').value.trim(),
-            companyName: company, phone,
+            title,
             county: document.getElementById('spCounty').value,
             category: document.getElementById('spCategory').value,
             price: document.getElementById('spPrice').value,
             moq: document.getElementById('spMOQ').value,
             payment: document.getElementById('spPayment').value,
             description: document.getElementById('spDescription').value,
+            imageUrl,
         });
         showToast('عرضه شما ثبت شد', 'success');
         closeModal('supplyModal'); spGoStep(1);
-        ['spTitle','spCompany','spPhone','spPrice','spMOQ','spDescription'].forEach(id => document.getElementById(id).value = '');
+        ['spTitle','spPrice','spMOQ','spDescription'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('spImage').value = '';
+        filePreview(document.getElementById('spImage'), 'spImageLabel', '📷');
         loadHome();
     } catch (e) { showToast(e.message, 'error'); }
 }
 
 async function submitPurchaseRequest() {
-    const company = document.getElementById('prCompany').value.trim();
-    const phone = document.getElementById('prPhone').value.trim();
-    if (!company || !phone) { showToast('نام شرکت و شماره تماس الزامی است', 'error'); return; }
+    const product = document.getElementById('prProduct').value.trim();
+    const quantity = document.getElementById('prQuantity').value.trim();
+    if (!product || !quantity) { showToast('نام محصول و مقدار الزامی است', 'error'); return; }
     try {
         await apiPost('/api/requests', {
-            product: document.getElementById('prProduct').value.trim(),
+            product,
             specs: document.getElementById('prSpecs').value,
-            quantity: document.getElementById('prQuantity').value,
+            quantity,
             unit: document.getElementById('prUnit').value,
             county: document.getElementById('prCounty').value,
             deadline: document.getElementById('prDeadline').value,
             priceRange: document.getElementById('prPriceRange').value,
             payment: document.getElementById('prPayment').value,
             description: document.getElementById('prDescription').value,
-            company, contactPerson: document.getElementById('prContactPerson').value, phone,
         });
         showToast('درخواست خرید ثبت شد', 'success');
         closeModal('purchaseRequestModal'); prGoStep(1);
-        ['prProduct','prSpecs','prQuantity','prDeadline','prPriceRange','prDescription','prCompany','prContactPerson','prPhone'].forEach(id => document.getElementById(id).value = '');
+        ['prProduct','prSpecs','prQuantity','prDeadline','prPriceRange','prDescription'].forEach(id => document.getElementById(id).value = '');
         loadHome();
     } catch (e) { showToast(e.message, 'error'); }
 }
 
 async function respondToRequest(id) {
+    if (!requireLogin('اعلام آمادگی تأمین')) return;
     try {
-        await apiPost(`/api/requests/${id}/respond`, { companyName: 'یک تأمین‌کننده' });
-        showToast('اعلام آمادگی شما ثبت شد', 'success');
+        await apiPost(`/api/requests/${id}/respond`, {});
+        showToast('اعلام آمادگی شما ثبت شد و مشخصات شما برای درخواست‌دهنده ارسال شد', 'success');
         loadHome(); loadRequests('requestsList');
     } catch (e) { showToast(e.message, 'error'); }
 }
 
 async function submitServiceRequest() {
-    const company = document.getElementById('srCompany').value.trim();
-    const phone = document.getElementById('srPhone').value.trim();
-    if (!company || !phone) { showToast('نام شرکت و شماره تماس الزامی است', 'error'); return; }
+    const roleTitle = document.getElementById('srRole').value.trim();
+    if (!roleTitle) { showToast('عنوان نیاز الزامی است', 'error'); return; }
     try {
         await apiPost('/api/service-requests', {
-            roleTitle: document.getElementById('srRole').value.trim(),
+            roleTitle,
             serviceCategory: document.getElementById('srCategory').value,
             description: document.getElementById('srDescription').value,
             county: document.getElementById('srCounty').value,
-            company, contactPerson: '', phone,
         });
         showToast('درخواست خدمات ثبت شد', 'success');
         closeModal('serviceRequestModal');
-        ['srRole','srDescription','srCompany','srPhone'].forEach(id => document.getElementById(id).value = '');
+        ['srRole','srDescription'].forEach(id => document.getElementById(id).value = '');
         loadServices('servicesList');
     } catch (e) { showToast(e.message, 'error'); }
 }
 
-function openRfq(offerId) { document.getElementById('rfqOfferId').value = offerId; openModal('rfqModal'); }
+function openRfq(offerId) {
+    if (!requireLogin('ارسال درخواست استعلام')) return;
+    document.getElementById('rfqOfferId').value = offerId;
+    openModal('rfqModal');
+}
 async function submitRfq() {
-    const phone = document.getElementById('rfqPhone').value.trim();
-    if (!phone) { showToast('شماره تماس الزامی است', 'error'); return; }
     try {
         await apiPost('/api/rfqs', {
             offerId: document.getElementById('rfqOfferId').value,
-            companyName: document.getElementById('rfqCompany').value,
-            personName: document.getElementById('rfqPerson').value,
-            phone, quantity: document.getElementById('rfqQuantity').value,
+            quantity: document.getElementById('rfqQuantity').value,
             message: document.getElementById('rfqMessage').value,
         });
         showToast('استعلام شما ارسال شد', 'success');
         closeModal('rfqModal');
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function submitContact() {
+    const message = document.getElementById('contactMessage').value.trim();
+    if (!message) { showToast('متن پیام الزامی است', 'error'); return; }
+    try {
+        await apiPost('/api/contact', {
+            name: document.getElementById('contactName').value,
+            phone: document.getElementById('contactPhone').value,
+            subject: document.getElementById('contactSubject').value,
+            message,
+        });
+        showToast('پیام شما ارسال شد', 'success');
+        closeModal('contactModal');
+        ['contactName','contactPhone','contactSubject','contactMessage'].forEach(id => document.getElementById(id).value = '');
     } catch (e) { showToast(e.message, 'error'); }
 }
 
@@ -497,5 +541,5 @@ function showRequestDetails(id) {
 // شروع
 // ------------------------------------------------------------------
 window.addEventListener('DOMContentLoaded', () => {
-    loadLookups(); loadHome(); trackView('/home');
+    renderAuthArea(); loadLookups(); loadHome(); trackView('/home');
 });
