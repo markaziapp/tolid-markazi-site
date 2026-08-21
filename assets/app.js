@@ -406,8 +406,13 @@ async function submitAdRequest() {
         const adType = document.getElementById('adType').value;
         let imageUrl = '', videoEmbedUrl = '';
         if (adType === 'image') {
-            try { imageUrl = await uploadFile(document.getElementById('adImage')); }
-            catch (e) { showToast('آپلود تصویر ناموفق بود: ' + e.message, 'error'); return; }
+            const directUrl = document.getElementById('adImageUrlDirect').value.trim();
+            if (directUrl) {
+                imageUrl = directUrl;
+            } else {
+                try { imageUrl = await uploadFile(document.getElementById('adImage')); }
+                catch (e) { showToast('آپلود تصویر ناموفق بود: ' + e.message, 'error'); return; }
+            }
         }
         if (adType === 'video') videoEmbedUrl = document.getElementById('adVideoUrl').value.trim();
         await apiPost('/api/ads', {

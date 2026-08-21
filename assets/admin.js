@@ -270,7 +270,8 @@ async function loadAds() {
             <div class="form-group"><label>نوع</label><select id="newAdType"><option value="text">متن</option><option value="image">عکس</option><option value="video">ویدیو</option></select></div>
             <div class="form-group"><label>عنوان</label><input type="text" id="newAdTitle"></div>
             <div class="form-group"><label>متن</label><textarea id="newAdBody" rows="2"></textarea></div>
-            <div class="form-group"><label>عکس</label><input type="file" id="newAdImage" accept="image/*"></div>
+            <div class="form-group"><label>عکس (آپلود)</label><input type="file" id="newAdImage" accept="image/*"></div>
+            <div class="form-group"><label>یا مستقیم لینک عکس</label><input type="text" id="newAdImageUrl" placeholder="https://..."></div>
             <div class="form-group"><label>لینک ویدیو</label><input type="text" id="newAdVideo" placeholder="لینک آپارات/یوتیوب"></div>
             <button class="btn btn-gold" style="width:100%;" onclick="createAdDirect()">ثبت و تایید فوری</button>
         </div>`;
@@ -285,9 +286,9 @@ async function deleteAd(id) {
 }
 async function createAdDirect() {
     try {
-        let imageUrl = '';
+        let imageUrl = document.getElementById('newAdImageUrl').value.trim();
         const fileInput = document.getElementById('newAdImage');
-        if (fileInput.files && fileInput.files[0]) {
+        if (!imageUrl && fileInput.files && fileInput.files[0]) {
             const fd = new FormData(); fd.append('file', fileInput.files[0]);
             const res = await fetch(api('/api/upload'), { method: 'POST', headers: { Authorization: 'Bearer ' + getToken() }, body: fd });
             const data = await res.json();
