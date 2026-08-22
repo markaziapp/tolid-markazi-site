@@ -147,6 +147,7 @@ async function loadDashboard() {
         renderMyRequests(data.myRequests || []);
         renderMyRfqsSent(data.myRfqsSent || []);
         renderRfqsReceived(data.rfqsReceived || []);
+        checkNewActivity(data);
 
         const labels = (data.monthlyViews || []).map(m => m.month).reverse();
         const values = (data.monthlyViews || []).map(m => m.c).reverse();
@@ -249,6 +250,22 @@ async function submitNewService() {
         document.getElementById('newSrvRole').value = '';
         loadDashboard();
     } catch (e) { showToast(e.message, 'error'); }
+}
+
+function checkNewActivity(data) {
+    const lastSeenKey = 'lastSeenActivity_' + data.company.id;
+    const lastSeen = localStorage.getItem(lastSeenKey);
+    const latestTimes = [];
+    (data.rfqsReceived || []).forEach(r => latestTimes.push(r.created_at));
+    (data.myRequests || []).forEach(r => (r.responses || []).forEach(rr => latestTimes.push(rr.created_at)));
+    const newest = latestTimes.sort().reverse()[0];
+    const notice = document.getElementById('newActivityNotice');
+    if (newest && (!lastSeen || newest > lastSeen)) {
+        notice.innerHTML = '<div class="response-note" style="background:#fef3c7; color:#92400e; display:block; padding:0.6rem; border-radius:8px; margin:0.5rem 0;">🔔 فعالیت جدید دارید — استعلام یا پاسخ تازه دریافت کرده‌اید</div>';
+    } else {
+        notice.innerHTML = '';
+    }
+    if (newest) localStorage.setItem(lastSeenKey, newest);
 }
 
 async function saveProfileEdit() {

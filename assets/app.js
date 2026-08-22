@@ -58,6 +58,13 @@ function openModal(id) {
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
+function openLightbox(url) {
+    if (!url) return;
+    document.getElementById('lightboxImg').src = url;
+    document.getElementById('lightboxOverlay').classList.add('open');
+}
+function closeLightbox() { document.getElementById('lightboxOverlay').classList.remove('open'); }
+
 // مودال‌هایی که ورود لازم دارند، قبل از باز شدن چک می‌شوند
 function openModalAuth(id, actionLabel) {
     if (!requireLogin(actionLabel)) return;
@@ -181,7 +188,7 @@ function offerCard(offer) {
     const verified = offer.company_verified ? '<span class="badge badge-verified">✔ تأیید شده</span>' : '';
     let specs = {};
     try { specs = JSON.parse(offer.specs_json || '{}'); } catch {}
-    const img = offer.image_url ? `<img src="${esc(offer.image_url)}" alt="${esc(offer.title)}" style="width:100%; height:140px; object-fit:cover; border-radius:8px 8px 0 0;">` : '';
+    const img = offer.image_url ? `<img class="card-image" src="${esc(offer.image_url)}" alt="${esc(offer.title)}" onclick="openLightbox('${esc(offer.image_url)}')">` : '';
     return `
     <div class="card ${offer.featured_approved ? 'featured' : ''}">
         ${img}
@@ -258,51 +265,72 @@ async function loadOffers() {
     } catch { el.innerHTML = emptyState('خطا در بارگذاری'); }
 }
 
+let debounceTimers = {};
+function debounced(key, fn, delay = 350) {
+    clearTimeout(debounceTimers[key]);
+    debounceTimers[key] = setTimeout(fn, delay);
+}
+
 async function loadRequests(targetId) {
     const el = document.getElementById(targetId);
     el.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
-    try {
-        const reqs = await apiGet('/api/requests');
-        el.innerHTML = reqs.map(requestCard).join('') || emptyState('هنوز درخواستی ثبت نشده');
-    } catch { el.innerHTML = emptyState('خطا در بارگذاری'); }
+    debounced('requests', async () => {
+        const q = (document.getElementById('requestsSearch')?.value || '').trim().toLowerCase();
+        try {
+            let reqs = await apiGet('/api/requests');
+            if (q) reqs = reqs.filter(r => (r.product||'').toLowerCase().includes(q) || (r.company||'').toLowerCase().includes(q));
+            el.innerHTML = reqs.map(requestCard).join('') || emptyState('نتیجه‌ای یافت نشد');
+        } catch { el.innerHTML = emptyState('خطا در بارگذاری'); }
+    });
 }
 
 async function loadServices(targetId) {
     const el = document.getElementById(targetId);
     el.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
-    try {
-        const items = await apiGet('/api/service-requests');
-        el.innerHTML = items.map(serviceCard).join('') || emptyState('هنوز درخواست خدماتی ثبت نشده');
-    } catch { el.innerHTML = emptyState('خطا در بارگذاری'); }
+    debounced('services', async () => {
+        const q = (document.getElementById('servicesSearch')?.value || '').trim().toLowerCase();
+        try {
+            let items = await apiGet('/api/service-requests');
+            if (q) items = items.filter(s => (s.role_title||'').toLowerCase().includes(q) || (s.company||'').toLowerCase().includes(q));
+            el.innerHTML = items.map(serviceCard).join('') || emptyState('نتیجه‌ای یافت نشد');
+        } catch { el.innerHTML = emptyState('خطا در بارگذاری'); }
+    });
 }
 
 async function loadCompanies(targetId, limit) {
     const el = document.getElementById(targetId);
     if (!el) return;
     el.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
-    try {
-        const items = await apiGet('/api/companies');
-        const list = limit ? items.slice(0, limit) : items;
-        el.innerHTML = list.map(companyCard).join('') || emptyState('هنوز واحدی ثبت نشده');
-    } catch { el.innerHTML = emptyState('خطا در بارگذاری'); }
+    debounced('companies', async () => {
+        const q = (document.getElementById('companiesSearch')?.value || '').trim();
+        try {
+            const items = await apiGet('/api/companies' + (q ? '?q=' + encodeURIComponent(q) : ''));
+            const list = limit ? items.slice(0, limit) : items;
+            el.innerHTML = list.map(companyCard).join('') || emptyState(q ? 'نتیجه‌ای یافت نشد' : 'هنوز واحدی ثبت نشده');
+        } catch { el.innerHTML = emptyState('خطا در بارگذاری'); }
+    });
 }
 
 async function loadFiles() {
     const el = document.getElementById('filesList');
     el.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
-    try {
-        const files = await apiGet('/api/admin-files');
-        el.innerHTML = files.map(f => `
-            <div class="card">
-                <div class="card-header"><div class="card-title">${esc(f.title)}</div>${f.is_locked ? '<span class="badge badge-featured">🔒 نیازمند خرید</span>' : '<span class="badge badge-verified">رایگان</span>'}</div>
-                <div class="card-body"><p style="font-size:0.85rem;">${esc(f.description||'')}</p></div>
-                <div class="card-footer">
-                    ${f.is_locked
-                        ? `<a class="btn btn-outline btn-sm" href="tel:">برای خرید تماس بگیرید</a>`
-                        : `<a class="btn btn-primary btn-sm" href="${esc(f.file_url)}" target="_blank">دانلود</a>`}
-                </div>
-            </div>`).join('') || emptyState('فعلاً فایلی ثبت نشده');
-    } catch { el.innerHTML = emptyState('خطا در بارگذاری'); }
+    debounced('files', async () => {
+        const q = (document.getElementById('filesSearch')?.value || '').trim().toLowerCase();
+        try {
+            let files = await apiGet('/api/admin-files');
+            if (q) files = files.filter(f => (f.title||'').toLowerCase().includes(q));
+            el.innerHTML = files.map(f => `
+                <div class="card">
+                    <div class="card-header"><div class="card-title">${esc(f.title)}</div>${f.is_locked ? '<span class="badge badge-featured">🔒 نیازمند خرید</span>' : '<span class="badge badge-verified">رایگان</span>'}</div>
+                    <div class="card-body"><p style="font-size:0.85rem;">${esc(f.description||'')}</p></div>
+                    <div class="card-footer">
+                        ${f.is_locked
+                            ? `<a class="btn btn-outline btn-sm" href="tel:">برای خرید تماس بگیرید</a>`
+                            : `<a class="btn btn-primary btn-sm" href="${esc(f.file_url)}" target="_blank">دانلود</a>`}
+                    </div>
+                </div>`).join('') || emptyState(q ? 'نتیجه‌ای یافت نشد' : 'فعلاً فایلی ثبت نشده');
+        } catch { el.innerHTML = emptyState('خطا در بارگذاری'); }
+    });
 }
 
 async function loadAds() {
@@ -312,7 +340,7 @@ async function loadAds() {
         if (!ads.length) { el.innerHTML = ''; return; }
         el.innerHTML = ads.slice(0, 2).map(ad => {
             let inner = '';
-            if (ad.ad_type === 'image' && ad.image_url) inner = `<img src="${esc(ad.image_url)}" alt="${esc(ad.title||'تبلیغ')}" style="width:110px; height:80px; object-fit:cover; border-radius:8px;">`;
+            if (ad.ad_type === 'image' && ad.image_url) inner = `<img src="${esc(ad.image_url)}" alt="${esc(ad.title||'تبلیغ')}" onclick="openLightbox('${esc(ad.image_url)}')">`;
             if (ad.ad_type === 'video' && ad.video_embed_url) inner = `<a href="${esc(ad.video_embed_url)}" target="_blank" class="btn btn-outline btn-sm">مشاهده ویدیو</a>`;
             return `
             <div class="ad-slot">

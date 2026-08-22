@@ -6,6 +6,12 @@ function showToast(msg, type = '') {
 }
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 const ROLE_LABELS = { producer: 'تولیدکننده', service: 'خدمات‌دهنده', buyer: 'خریدار', other: 'سایر' };
+function openLightbox(url) {
+    if (!url) return;
+    document.getElementById('lightboxImg').src = url;
+    document.getElementById('lightboxOverlay').classList.add('open');
+}
+function closeLightbox() { document.getElementById('lightboxOverlay').classList.remove('open'); }
 function getToken() { return sessionStorage.getItem('adminToken'); }
 function setToken(t) { sessionStorage.setItem('adminToken', t); }
 function clearToken() { sessionStorage.removeItem('adminToken'); }
@@ -64,6 +70,25 @@ function enterPanel() {
     document.getElementById('loginWrap').style.display = 'none';
     document.getElementById('adminPanel').style.display = 'block';
     switchAdminTab('overview');
+    loadNotifications();
+}
+
+async function loadNotifications() {
+    try {
+        const n = await apiGet('/api/admin/notifications');
+        const badge = document.getElementById('notifBadge');
+        if (n.total > 0) { badge.textContent = n.total; badge.style.display = 'inline-block'; }
+        else { badge.style.display = 'none'; }
+        setTabBadge('tabBadgePending', n.pendingEdits + n.pendingPresentations);
+        setTabBadge('tabBadgeAds', n.pendingAds);
+        setTabBadge('tabBadgeMessages', n.unreadMessages);
+    } catch {}
+}
+function setTabBadge(id, count) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (count > 0) { el.textContent = count; el.style.display = 'inline-block'; }
+    else { el.style.display = 'none'; }
 }
 
 function switchAdminTab(tab) {
@@ -98,6 +123,27 @@ async function loadOverview() {
             <table class="admin-table"><tr><th>مسیر</th><th>بازدید</th></tr>
                 ${data.topPaths.map(p => `<tr><td>${esc(p.path)}</td><td>${p.c}</td></tr>`).join('') || '<tr><td colspan="2">داده‌ای نیست</td></tr>'}
             </table>
+
+            <h3 class="section-title" style="font-size:1rem;">ابزارها</h3>
+            <div class="card" style="padding:1rem; margin-bottom:0.8rem;">
+                <button class="btn btn-outline btn-sm" onclick="checkEnv()">بررسی تنظیمات GitHub/امنیتی</button>
+                <div id="envCheckResult" style="margin-top:0.6rem; font-size:0.85rem;"></div>
+            </div>
+            <div class="card" style="padding:1rem; margin-bottom:0.8rem;">
+                <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                    <button class="btn btn-primary btn-sm" onclick="downloadBackup()">📥 دانلود پشتیبان کامل</button>
+                    <label class="btn btn-outline btn-sm" style="cursor:pointer;">📤 بازیابی از فایل
+                        <input type="file" id="restoreFile" accept=".json" style="display:none" onchange="uploadRestore(this)">
+                    </label>
+                </div>
+                <p style="font-size:0.75rem; color:var(--text-light); margin-top:0.5rem;">قبل از هر تغییر بزرگ، حتماً یک پشتیبان بگیرید.</p>
+            </div>
+            <div class="card" style="padding:1rem; border-color:var(--red);">
+                <b style="color:var(--red);">⚠️ پاک کردن همه اطلاعات آزمایشی</b>
+                <p style="font-size:0.78rem; color:var(--text-light); margin:0.4rem 0;">همه شرکت‌ها، آگهی‌ها، درخواست‌ها و پیام‌ها حذف می‌شود (دسته‌بندی‌ها و شهرستان‌ها باقی می‌مانند). قابل بازگشت نیست مگر با پشتیبان.</p>
+                <input type="text" id="wipeConfirmInput" placeholder="برای تایید بنویسید: پاک کن" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border); margin-bottom:0.5rem;">
+                <button class="btn btn-danger btn-sm" onclick="wipeAllData()">پاک کردن همه چیز</button>
+            </div>
         `;
         const labels = data.daily.map(d => d.day).reverse();
         const values = data.daily.map(d => d.c).reverse();
@@ -108,6 +154,62 @@ async function loadOverview() {
             options: { responsive: true, plugins: { legend: { display: false } } },
         });
     } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
+}
+
+// ------------------------------------------------------------------
+// ابزار تشخیصی / پشتیبان‌گیری / بازیابی / پاک‌سازی
+// ------------------------------------------------------------------
+async function checkEnv() {
+    const el = document.getElementById('envCheckResult');
+    el.innerHTML = 'در حال بررسی...';
+    try {
+        const r = await apiGet('/api/admin/env-check');
+        const row = (label, ok, extra) => `<div>${ok ? '✅' : '❌'} ${label}${extra ? ' — ' + esc(extra) : ''}</div>`;
+        el.innerHTML =
+            row('GITHUB_TOKEN', r.GITHUB_TOKEN) +
+            row('GITHUB_OWNER', r.GITHUB_OWNER, r.GITHUB_OWNER_value) +
+            row('GITHUB_UPLOADS_REPO', r.GITHUB_UPLOADS_REPO, r.GITHUB_UPLOADS_REPO_value) +
+            row('GITHUB_BRANCH', r.GITHUB_BRANCH, r.GITHUB_BRANCH_value) +
+            row('JWT_SECRET', r.JWT_SECRET) +
+            row('SETUP_KEY', r.SETUP_KEY);
+    } catch (e) { el.innerHTML = `<span style="color:var(--red);">${esc(e.message)}</span>`; }
+}
+
+async function downloadBackup() {
+    try {
+        const data = await apiGet('/api/admin/backup');
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'tolid-markazi-backup-' + new Date().toISOString().slice(0,10) + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('فایل پشتیبان دانلود شد', 'success');
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function uploadRestore(input) {
+    if (!input.files || !input.files[0]) return;
+    if (!confirm('اطلاعات فعلی با محتوای این فایل جایگزین می‌شود. مطمئنید؟')) { input.value = ''; return; }
+    try {
+        const text = await input.files[0].text();
+        const data = JSON.parse(text);
+        await apiSend('POST', '/api/admin/restore', data);
+        showToast('بازیابی انجام شد', 'success');
+        loadOverview();
+    } catch (e) { showToast('خطا در بازیابی: ' + e.message, 'error'); }
+    input.value = '';
+}
+
+async function wipeAllData() {
+    const confirmText = document.getElementById('wipeConfirmInput').value.trim();
+    if (confirmText !== 'پاک کن') { showToast('برای تایید عبارت «پاک کن» را دقیق تایپ کنید', 'error'); return; }
+    if (!confirm('این عمل غیرقابل بازگشت است (مگر با فایل پشتیبان). ادامه می‌دهید؟')) return;
+    try {
+        await apiSend('POST', '/api/admin/wipe', { confirm: 'پاک کن' });
+        showToast('همه اطلاعات آزمایشی پاک شد', 'success');
+        loadOverview();
+    } catch (e) { showToast(e.message, 'error'); }
 }
 
 // ------------------------------------------------------------------
@@ -132,19 +234,31 @@ async function loadPending() {
     } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
 }
 async function decidePending(id, decision) {
-    try { await apiSend('PUT', `/api/admin/pending-edits/${id}`, { decision }); showToast('ثبت شد', 'success'); loadPending(); }
+    try { await apiSend('PUT', `/api/admin/pending-edits/${id}`, { decision }); showToast('ثبت شد', 'success'); loadPending(); loadNotifications(); }
     catch (e) { showToast(e.message, 'error'); }
 }
 
 // ------------------------------------------------------------------
 // واحدهای تولیدی
 // ------------------------------------------------------------------
+let adminCache = {};
+
 async function loadCompanies() {
     const el = document.getElementById('admin-companies');
     el.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
     try {
-        const items = await apiGet('/api/admin/companies');
-        el.innerHTML = `<h2 class="section-title">🏭 واحدهای تولیدی</h2><div class="table-wrap"><table class="admin-table">
+        adminCache.companies = await apiGet('/api/admin/companies');
+        renderCompaniesTable();
+    } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
+}
+function renderCompaniesTable() {
+    const el = document.getElementById('admin-companies');
+    const q = (document.getElementById('companiesAdminSearch')?.value || '').trim().toLowerCase();
+    let items = adminCache.companies || [];
+    if (q) items = items.filter(c => (c.name||'').toLowerCase().includes(q) || (c.phone||'').includes(q));
+    el.innerHTML = `<h2 class="section-title">🏭 واحدهای تولیدی</h2>
+        <input type="text" id="companiesAdminSearch" placeholder="جستجوی نام یا شماره..." value="${esc(q)}" oninput="renderCompaniesTable()" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border); margin-bottom:0.8rem;">
+        <div class="table-wrap"><table class="admin-table">
             <tr><th>نام</th><th>نقش</th><th>شهرستان</th><th>وضعیت</th><th>پرزنت</th><th>عملیات</th></tr>
             ${items.map(c => `<tr>
                 <td>${esc(c.name)}<br><small style="color:var(--text-light)">${esc(c.phone)}</small></td>
@@ -156,16 +270,17 @@ async function loadCompanies() {
                     <button class="btn btn-sm ${c.verified?'btn-outline':'btn-primary'}" onclick="toggleCompany(${c.id},'verified',${c.verified?0:1})">${c.verified?'لغو تأیید':'تأیید'}</button>
                     <button class="btn btn-sm ${c.active?'btn-danger':'btn-outline'}" onclick="toggleCompany(${c.id},'active',${c.active?0:1})">${c.active?'غیرفعال':'فعال'}</button>
                 </td>
-            </tr>`).join('')}
+            </tr>`).join('') || '<tr><td colspan="6">نتیجه‌ای یافت نشد</td></tr>'}
         </table></div>`;
-    } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
+    document.getElementById('companiesAdminSearch').focus();
+    document.getElementById('companiesAdminSearch').setSelectionRange(q.length, q.length);
 }
 async function toggleCompany(id, field, value) {
-    try { await apiSend('PUT', `/api/admin/companies/${id}`, { [field]: value }); loadCompanies(); }
+    try { await apiSend('PUT', `/api/admin/companies/${id}`, { [field]: value }); loadCompanies(); loadNotifications(); }
     catch (e) { showToast(e.message, 'error'); }
 }
 async function decidePresentation(id, status) {
-    try { await apiSend('PUT', `/api/admin/companies/${id}`, { presentation_status: status }); showToast('ثبت شد', 'success'); loadCompanies(); }
+    try { await apiSend('PUT', `/api/admin/companies/${id}`, { presentation_status: status }); showToast('ثبت شد', 'success'); loadCompanies(); loadNotifications(); }
     catch (e) { showToast(e.message, 'error'); }
 }
 
@@ -176,8 +291,18 @@ async function loadOffers() {
     const el = document.getElementById('admin-offers');
     el.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
     try {
-        const items = await apiGet('/api/admin/offers');
-        el.innerHTML = `<h2 class="section-title">📦 عرضه‌ها</h2><div class="table-wrap"><table class="admin-table">
+        adminCache.offers = await apiGet('/api/admin/offers');
+        renderOffersTable();
+    } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
+}
+function renderOffersTable() {
+    const el = document.getElementById('admin-offers');
+    const q = (document.getElementById('offersAdminSearch')?.value || '').trim().toLowerCase();
+    let items = adminCache.offers || [];
+    if (q) items = items.filter(o => (o.title||'').toLowerCase().includes(q) || (o.company_name||'').toLowerCase().includes(q));
+    el.innerHTML = `<h2 class="section-title">📦 عرضه‌ها</h2>
+        <input type="text" id="offersAdminSearch" placeholder="جستجوی عنوان یا شرکت..." value="${esc(q)}" oninput="renderOffersTable()" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border); margin-bottom:0.8rem;">
+        <div class="table-wrap"><table class="admin-table">
             <tr><th>عنوان</th><th>شرکت</th><th>قیمت</th><th>وضعیت</th><th>عملیات</th></tr>
             ${items.map(o => `<tr>
                 <td>${esc(o.title)}</td><td>${esc(o.company_name)}</td><td>${esc(o.price||'-')}</td>
@@ -187,9 +312,10 @@ async function loadOffers() {
                     <button class="btn btn-sm ${o.featured_approved?'btn-outline':'btn-gold'}" onclick="toggleOffer(${o.id},'featured_approved',${o.featured_approved?0:1})">${o.featured_approved?'حذف ستاره':'ستاره‌دار کن'}</button>
                     <button class="btn btn-sm btn-danger" onclick="deleteOffer(${o.id})">حذف</button>
                 </td>
-            </tr>`).join('')}
+            </tr>`).join('') || '<tr><td colspan="5">نتیجه‌ای یافت نشد</td></tr>'}
         </table></div>`;
-    } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
+    const inp = document.getElementById('offersAdminSearch');
+    inp.focus(); inp.setSelectionRange(q.length, q.length);
 }
 async function toggleOffer(id, field, value) {
     try { await apiSend('PUT', `/api/admin/offers/${id}`, { [field]: value }); loadOffers(); }
@@ -207,8 +333,18 @@ async function loadRequests() {
     const el = document.getElementById('admin-requests');
     el.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
     try {
-        const items = await apiGet('/api/admin/requests');
-        el.innerHTML = `<h2 class="section-title">📋 درخواست‌های خرید</h2>` + items.map(r => `
+        adminCache.requests = await apiGet('/api/admin/requests');
+        renderRequestsList();
+    } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
+}
+function renderRequestsList() {
+    const el = document.getElementById('admin-requests');
+    const q = (document.getElementById('requestsAdminSearch')?.value || '').trim().toLowerCase();
+    let items = adminCache.requests || [];
+    if (q) items = items.filter(r => (r.product||'').toLowerCase().includes(q) || (r.company||'').toLowerCase().includes(q));
+    el.innerHTML = `<h2 class="section-title">📋 درخواست‌های خرید</h2>
+        <input type="text" id="requestsAdminSearch" placeholder="جستجوی محصول یا شرکت..." value="${esc(q)}" oninput="renderRequestsList()" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border); margin-bottom:0.8rem;">` +
+        (items.map(r => `
             <div class="card" style="padding:0.9rem; margin-bottom:0.6rem;">
                 <div style="display:flex; justify-content:space-between;">
                     <b>${esc(r.product)}</b>
@@ -218,8 +354,9 @@ async function loadRequests() {
                 ${r.responses && r.responses.length
                     ? `<div style="margin-top:0.5rem; font-size:0.82rem;">✅ پاسخ‌ها: ${r.responses.map(rr => `${esc(rr.company_name)} (<a href="tel:${esc(rr.phone)}">${esc(rr.phone)}</a>)`).join('، ')}</div>`
                     : `<div style="margin-top:0.4rem; font-size:0.8rem; color:var(--text-light);">هنوز پاسخی نیامده</div>`}
-            </div>`).join('') || '<div class="empty-state">درخواستی ثبت نشده</div>';
-    } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
+            </div>`).join('') || '<div class="empty-state">نتیجه‌ای یافت نشد</div>');
+    const inp = document.getElementById('requestsAdminSearch');
+    inp.focus(); inp.setSelectionRange(q.length, q.length);
 }
 async function deleteRequest(id) {
     if (!confirm('حذف شود؟')) return;
@@ -265,7 +402,7 @@ async function loadMessages() {
     } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
 }
 async function setMessageStatus(id, status) {
-    try { await apiSend('PUT', `/api/admin/contact-messages/${id}`, { status }); loadMessages(); } catch (e) { showToast(e.message, 'error'); }
+    try { await apiSend('PUT', `/api/admin/contact-messages/${id}`, { status }); loadMessages(); loadNotifications(); } catch (e) { showToast(e.message, 'error'); }
 }
 async function deleteMessage(id) {
     if (!confirm('حذف شود؟')) return;
@@ -332,7 +469,7 @@ async function loadAds() {
     } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
 }
 async function setAdStatus(id, status) {
-    try { await apiSend('PUT', `/api/admin/ads/${id}`, { status }); loadAds(); } catch (e) { showToast(e.message, 'error'); }
+    try { await apiSend('PUT', `/api/admin/ads/${id}`, { status }); loadAds(); loadNotifications(); } catch (e) { showToast(e.message, 'error'); }
 }
 async function deleteAd(id) {
     if (!confirm('حذف شود؟')) return;
