@@ -211,9 +211,11 @@ async function submitNewOffer() {
     const title = document.getElementById('newOfferTitle').value.trim();
     if (!title) { showToast('عنوان محصول الزامی است', 'error'); return; }
     try {
-        let imageUrl = '';
-        try { imageUrl = await uploadFile(document.getElementById('newOfferImage'), true); }
-        catch (e) { showToast('آپلود عکس ناموفق بود: ' + e.message, 'error'); return; }
+        let imageUrl = document.getElementById('newOfferImageUrl').value.trim();
+        if (!imageUrl) {
+            try { imageUrl = await uploadFile(document.getElementById('newOfferImage'), true); }
+            catch (e) { showToast('آپلود عکس ناموفق بود: ' + e.message, 'error'); return; }
+        }
         await apiSend('POST', '/api/offers', {
             title,
             category: document.getElementById('newOfferCategory').value,
@@ -223,7 +225,7 @@ async function submitNewOffer() {
             imageUrl,
         }, true);
         showToast('آگهی ثبت شد', 'success');
-        ['newOfferTitle','newOfferPrice','newOfferMoq','newOfferDesc'].forEach(id => document.getElementById(id).value = '');
+        ['newOfferTitle','newOfferPrice','newOfferMoq','newOfferDesc','newOfferImageUrl'].forEach(id => document.getElementById(id).value = '');
         document.getElementById('newOfferImage').value = '';
         loadDashboard();
     } catch (e) { showToast(e.message, 'error'); }
@@ -270,11 +272,16 @@ function checkNewActivity(data) {
 
 async function saveProfileEdit() {
     try {
-        let logoUrl, licenseUrl;
-        try { logoUrl = await uploadFile(document.getElementById('editLogo'), true); }
-        catch (e) { showToast('آپلود لوگو ناموفق بود: ' + e.message, 'error'); return; }
-        try { licenseUrl = await uploadFile(document.getElementById('editLicense'), false); }
-        catch (e) { showToast('آپلود مجوز ناموفق بود: ' + e.message, 'error'); return; }
+        let logoUrl = document.getElementById('editLogoUrl').value.trim();
+        let licenseUrl = document.getElementById('editLicenseUrl').value.trim();
+        if (!logoUrl) {
+            try { logoUrl = await uploadFile(document.getElementById('editLogo'), true); }
+            catch (e) { showToast('آپلود لوگو ناموفق بود: ' + e.message, 'error'); return; }
+        }
+        if (!licenseUrl) {
+            try { licenseUrl = await uploadFile(document.getElementById('editLicense'), false); }
+            catch (e) { showToast('آپلود مجوز ناموفق بود: ' + e.message, 'error'); return; }
+        }
         const body = {
             name: document.getElementById('editName').value,
             county: document.getElementById('editCounty').value,

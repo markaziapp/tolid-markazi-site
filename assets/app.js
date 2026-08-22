@@ -401,9 +401,11 @@ async function submitSupply() {
     const title = document.getElementById('spTitle').value.trim();
     if (!title) { showToast('عنوان محصول الزامی است', 'error'); return; }
     try {
-        let imageUrl = '';
-        try { imageUrl = await uploadFile(document.getElementById('spImage'), true); }
-        catch (e) { showToast('آپلود عکس ناموفق بود: ' + e.message, 'error'); return; }
+        let imageUrl = document.getElementById('spImageUrl').value.trim();
+        if (!imageUrl) {
+            try { imageUrl = await uploadFile(document.getElementById('spImage'), true); }
+            catch (e) { showToast('آپلود عکس ناموفق بود: ' + e.message, 'error'); return; }
+        }
         await apiPost('/api/offers', {
             title,
             county: document.getElementById('spCounty').value,
@@ -416,7 +418,7 @@ async function submitSupply() {
         });
         showToast('عرضه شما ثبت شد', 'success');
         closeModal('supplyModal'); spGoStep(1);
-        ['spTitle','spPrice','spMOQ','spDescription'].forEach(id => document.getElementById(id).value = '');
+        ['spTitle','spPrice','spMOQ','spDescription','spImageUrl'].forEach(id => document.getElementById(id).value = '');
         document.getElementById('spImage').value = '';
         filePreview(document.getElementById('spImage'), 'spImageLabel', '📷');
         loadHome();
