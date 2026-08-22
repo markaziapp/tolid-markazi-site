@@ -75,6 +75,7 @@
                 <label>عکس محصول (اختیاری)</label>
                 <label class="file-upload" id="newOfferImageLabel" for="newOfferImage">📷 برای انتخاب تصویر کلیک کنید</label>
                 <input type="file" id="newOfferImage" accept="image/*" style="display:none" onchange="uploadPreview(this,'newOfferImageLabel','📷')">
+                <input type="text" id="newOfferImageUrl" placeholder="یا مستقیم لینک تصویر را این‌جا بگذارید" style="margin-top:0.5rem;">
             </div>
             <div class="form-group"><label>توضیحات</label><textarea id="newOfferDesc" rows="2"></textarea></div>
             <button class="btn btn-gold" style="width:100%;" onclick="submitNewOffer()">ثبت آگهی</button>
@@ -116,11 +117,13 @@
                 <label>لوگو (اختیاری)</label>
                 <label class="file-upload" id="editLogoLabel" for="editLogo">📷 برای انتخاب تصویر کلیک کنید</label>
                 <input type="file" id="editLogo" accept="image/*" style="display:none" onchange="uploadPreview(this,'editLogoLabel','📷')">
+                <input type="text" id="editLogoUrl" placeholder="یا مستقیم لینک تصویر را این‌جا بگذارید" style="margin-top:0.5rem;">
             </div>
             <div class="form-group">
                 <label>تصویر مجوز فعالیت (برای تأیید سریع‌تر)</label>
                 <label class="file-upload" id="editLicenseLabel" for="editLicense">📄 برای آپلود مجوز کلیک کنید</label>
                 <input type="file" id="editLicense" accept="image/*,.pdf" style="display:none" onchange="uploadPreview(this,'editLicenseLabel','📄')">
+                <input type="text" id="editLicenseUrl" placeholder="یا مستقیم لینک فایل مجوز را این‌جا بگذارید" style="margin-top:0.5rem;">
             </div>
             <button class="btn btn-primary" style="width:100%;" onclick="saveProfileEdit()">ارسال برای تایید</button>
             <p style="font-size:0.75rem; color:var(--text-light); margin-top:0.5rem;">تغییرات پس از تایید مدیر روی سایت اعمال می‌شود.</p>
