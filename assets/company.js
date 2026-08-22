@@ -14,7 +14,7 @@ async function apiGet(path, auth) {
     const headers = auth ? { Authorization: 'Bearer ' + getToken() } : {};
     const res = await fetch(api(path), { headers });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'خطا');
+    if (!res.ok) throw new Error((data.error || 'خطا') + (data.detail ? ' — ' + data.detail : ''));
     return data;
 }
 async function apiSend(method, path, body, auth) {
@@ -22,7 +22,7 @@ async function apiSend(method, path, body, auth) {
     if (auth) headers.Authorization = 'Bearer ' + getToken();
     const res = await fetch(api(path), { method, headers, body: JSON.stringify(body || {}) });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'خطا');
+    if (!res.ok) throw new Error((data.error || 'خطا') + (data.detail ? ' — ' + data.detail : ''));
     return data;
 }
 

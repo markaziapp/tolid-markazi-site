@@ -13,7 +13,7 @@ function clearToken() { sessionStorage.removeItem('adminToken'); }
 async function apiGet(path) {
     const res = await fetch(api(path), { headers: { Authorization: 'Bearer ' + getToken() } });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'خطا');
+    if (!res.ok) throw new Error((data.error || 'خطا') + (data.detail ? ' — ' + data.detail : ''));
     return data;
 }
 async function apiSend(method, path, body) {
@@ -21,7 +21,7 @@ async function apiSend(method, path, body) {
         method, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + getToken() }, body: JSON.stringify(body || {}),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'خطا');
+    if (!res.ok) throw new Error((data.error || 'خطا') + (data.detail ? ' — ' + data.detail : ''));
     return data;
 }
 
