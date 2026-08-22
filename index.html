@@ -87,6 +87,7 @@
     <!-- ===================== درخواست خرید ===================== -->
     <section id="tab-requests" class="tab-page" style="display:none;">
         <h2 class="section-title">📋 درخواست‌های خرید</h2>
+        <div class="search-box" style="margin-bottom:0.6rem;"><span class="search-icon">🔍</span><input type="text" id="requestsSearch" placeholder="جستجوی محصول یا شرکت..." oninput="loadRequests('requestsList')"></div>
         <div style="margin-bottom:1rem;"><button class="btn btn-primary btn-sm" onclick="openModalAuth('purchaseRequestModal', 'ثبت درخواست خرید')">+ ثبت درخواست خرید</button></div>
         <div id="requestsList" class="cards-grid"><div class="loading">در حال بارگذاری...</div></div>
     </section>
@@ -95,6 +96,7 @@
     <section id="tab-services" class="tab-page" style="display:none;">
         <h2 class="section-title">🧑‍💼 درخواست خدمات و نیروی تخصصی</h2>
         <p style="color:var(--text-light); font-size:0.85rem; margin-bottom:0.8rem;">مثلاً نیاز به حسابدار، مدیر تولید، مشاور یا هر خدمت تخصصی دیگر</p>
+        <div class="search-box" style="margin-bottom:0.6rem;"><span class="search-icon">🔍</span><input type="text" id="servicesSearch" placeholder="جستجوی عنوان یا شرکت..." oninput="loadServices('servicesList')"></div>
         <div style="margin-bottom:1rem;"><button class="btn btn-primary btn-sm" onclick="openModalAuth('serviceRequestModal', 'ثبت درخواست خدمات')">+ ثبت درخواست خدمات</button></div>
         <div id="servicesList" class="cards-grid"><div class="loading">در حال بارگذاری...</div></div>
     </section>
@@ -102,6 +104,7 @@
     <!-- ===================== واحدهای تولیدی ===================== -->
     <section id="tab-companies" class="tab-page" style="display:none;">
         <h2 class="section-title">🏭 واحدهای تولیدی</h2>
+        <div class="search-box" style="margin-bottom:0.6rem;"><span class="search-icon">🔍</span><input type="text" id="companiesSearch" placeholder="جستجوی نام واحد..." oninput="loadCompanies('companiesList')"></div>
         <div style="margin-bottom:1rem;"><button class="btn btn-outline btn-sm" onclick="location.href='company.html#register'">+ ثبت واحد تولیدی من</button></div>
         <div id="companiesList" class="cards-grid"><div class="loading">در حال بارگذاری...</div></div>
     </section>
@@ -109,6 +112,7 @@
     <!-- ===================== فایل‌ها ===================== -->
     <section id="tab-tools" class="tab-page" style="display:none;">
         <h2 class="section-title">📁 فایل‌های مفید برای تولیدکنندگان</h2>
+        <div class="search-box" style="margin-bottom:0.6rem;"><span class="search-icon">🔍</span><input type="text" id="filesSearch" placeholder="جستجوی فایل..." oninput="loadFiles()"></div>
         <div id="filesList" class="cards-grid"><div class="loading">در حال بارگذاری...</div></div>
     </section>
 
@@ -268,6 +272,12 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- لایت‌باکس بزرگ‌نمایی عکس -->
+<div class="lightbox-overlay" id="lightboxOverlay" onclick="closeLightbox()">
+    <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+    <img id="lightboxImg" src="" alt="">
+</div>
 
 <div style="text-align:center; padding:1.5rem 0; font-size:0.75rem; color:var(--text-light); display:flex; flex-direction:column; gap:0.4rem;">
     <span>یک واحد تولیدی یا شرکت تبلیغاتی هستید؟ <a href="#" onclick="openModal('adRequestModal'); return false;" style="color:var(--gold-hover); font-weight:700;">درخواست تبلیغ در صفحه اصلی</a></span>
