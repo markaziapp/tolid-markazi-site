@@ -28,6 +28,10 @@ async function renderAuthArea() {
         return;
     }
     el.innerHTML = `<button class="btn btn-outline btn-sm" style="background:transparent;color:#fff;border-color:rgba(255,255,255,0.4);" onclick="location.href='company.html'">پنل من</button>`;
+    try {
+        const me = await apiGet('/api/company/me');
+        el.innerHTML = `<button class="btn btn-outline btn-sm" style="background:transparent;color:#fff;border-color:rgba(255,255,255,0.4);" onclick="location.href='company.html'">👋 ${esc(me.name)}</button>`;
+    } catch { /* اگر توکن منقضی شده باشد، همان دکمه ساده کافیست */ }
 }
 
 async function apiGet(path) {
