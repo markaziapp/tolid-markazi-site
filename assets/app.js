@@ -192,19 +192,24 @@ function offerCard(offer) {
     const verified = offer.company_verified ? '<span class="badge badge-verified">✔ تأیید شده</span>' : '';
     let specs = {};
     try { specs = JSON.parse(offer.specs_json || '{}'); } catch {}
-    const img = offer.image_url ? `<img class="card-image" src="${esc(offer.image_url)}" alt="${esc(offer.title)}" onclick="openLightbox('${esc(offer.image_url)}')">` : '';
+    const specsText = Object.entries(specs).slice(0, 2).map(([k,v]) => `${esc(k)}: ${esc(v)}`).join(' • ');
+    const img = offer.image_url
+        ? `<img class="thumb-image" src="${esc(offer.image_url)}" alt="${esc(offer.title)}" onclick="openLightbox('${esc(offer.image_url)}')" onerror="this.closest('.thumb-image-wrap').classList.add('broken')">`
+        : '';
     return `
-    <div class="card ${offer.featured_approved ? 'featured' : ''}">
-        ${img}
-        <div class="card-header">
-            <div><div class="card-title">${esc(offer.title)}</div><div class="card-subtitle">${esc(offer.company_name)} ${verified}</div></div>
-            <div>${featured}${offer.category ? `<span class="badge badge-category">${esc(offer.category)}</span>` : ''}</div>
-        </div>
-        <div class="card-body">
-            <ul class="spec-list">${Object.entries(specs).map(([k,v]) => `<li><span>${esc(k)}</span><span>${esc(v)}</span></li>`).join('')}</ul>
-            <div class="price-tag">${esc(offer.price||'توافقی')} <small>${esc(offer.unit||'')}</small></div>
-            ${offer.moq ? `<div style="font-size:0.8rem; color:var(--text-light);">حداقل سفارش: ${esc(offer.moq)}</div>` : ''}
-            <div style="font-size:0.8rem; margin-top:0.3rem;">📍 ${esc(offer.county||'')}</div>
+    <div class="card thumb-card ${offer.featured_approved ? 'featured' : ''}">
+        <div class="thumb-row">
+            <div class="thumb-image-wrap ${offer.image_url ? '' : 'broken'}">${img}<div class="thumb-fallback">📦</div></div>
+            <div class="thumb-content">
+                <div class="thumb-title-row">
+                    <div class="card-title">${esc(offer.title)}</div>
+                    ${featured}
+                </div>
+                <div class="card-subtitle">${esc(offer.company_name)} ${verified}</div>
+                ${specsText ? `<div class="thumb-specs">${specsText}</div>` : ''}
+                <div class="price-tag" style="font-size:0.95rem;">${esc(offer.price||'توافقی')} <small>${esc(offer.unit||'')}</small></div>
+                <div style="font-size:0.78rem; color:var(--text-light);">📍 ${esc(offer.county||'')} ${offer.moq ? '• حداقل: ' + esc(offer.moq) : ''}</div>
+            </div>
         </div>
         <div class="card-footer">
             <button class="btn btn-outline btn-sm" onclick="showOfferDetails(${offer.id})">جزئیات</button>
@@ -343,16 +348,20 @@ async function loadAds() {
         const el = document.getElementById('adSlotHome');
         if (!ads.length) { el.innerHTML = ''; return; }
         el.innerHTML = ads.slice(0, 2).map(ad => {
-            let inner = '';
-            if (ad.ad_type === 'image' && ad.image_url) inner = `<img src="${esc(ad.image_url)}" alt="${esc(ad.title||'تبلیغ')}" onclick="openLightbox('${esc(ad.image_url)}')">`;
-            if (ad.ad_type === 'video' && ad.video_embed_url) inner = `<a href="${esc(ad.video_embed_url)}" target="_blank" class="btn btn-outline btn-sm">مشاهده ویدیو</a>`;
+            let banner = '';
+            if (ad.ad_type === 'image' && ad.image_url) {
+                banner = `<img class="ad-banner-img" src="${esc(ad.image_url)}" alt="${esc(ad.title||'تبلیغ')}" onclick="openLightbox('${esc(ad.image_url)}')" onerror="this.style.display='none'">`;
+            }
+            const videoBtn = (ad.ad_type === 'video' && ad.video_embed_url)
+                ? `<a href="${esc(ad.video_embed_url)}" target="_blank" class="btn btn-gold btn-sm" style="margin-top:0.5rem;">🎬 مشاهده ویدیو</a>` : '';
             return `
             <div class="ad-slot">
-                ${inner}
-                <div>
-                    <div class="ad-tag">تبلیغ</div>
-                    <div style="font-weight:700;">${esc(ad.title||'')}</div>
-                    <div style="font-size:0.82rem; color:var(--text-light);">${esc(ad.body_text||'')}</div>
+                ${banner}
+                <div class="ad-text-wrap">
+                    <div class="ad-tag">✨ تبلیغ</div>
+                    <div class="ad-title">${esc(ad.title||'')}</div>
+                    <div class="ad-body-text">${esc(ad.body_text||'')}</div>
+                    ${videoBtn}
                 </div>
             </div>`;
         }).join('');
