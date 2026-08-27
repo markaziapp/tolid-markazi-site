@@ -144,6 +144,7 @@ async function loadDashboard() {
             'وضعیت پرزنت: ' + ({ none: 'ثبت نشده', pending: 'در انتظار تایید', approved: 'تأیید شده', rejected: 'رد شده' }[data.company.presentation_status] || '-');
 
         renderMyOffers(data.myOffers || []);
+        renderMyServices(data.myServices || []);
         renderMyRequests(data.myRequests || []);
         renderMyRfqsSent(data.myRfqsSent || []);
         renderRfqsReceived(data.rfqsReceived || []);
@@ -168,10 +169,89 @@ function renderMyOffers(list) {
     const el = document.getElementById('myOffersList');
     if (!list.length) { el.innerHTML = ''; return; }
     el.innerHTML = '<h4 style="font-size:0.9rem; margin-bottom:0.5rem;">آگهی‌های من</h4>' + list.map(o => `
-        <div class="card" style="padding:0.8rem; margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
-            <div><b>${esc(o.title)}</b><div style="font-size:0.78rem; color:var(--text-light);">${esc(o.price||'توافقی')} تومان • ${o.views} بازدید</div></div>
-            <span class="badge ${o.verified ? 'badge-verified' : 'badge-status'}">${o.verified ? '✔ تأیید' : 'در انتظار'}</span>
+        <div class="card" style="padding:0.8rem; margin-bottom:0.5rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div><b>${esc(o.title)}</b><div style="font-size:0.78rem; color:var(--text-light);">${esc(o.price||'توافقی')} تومان • ${o.views} بازدید</div></div>
+                <span class="badge ${o.verified ? 'badge-verified' : 'badge-status'}">${o.verified ? '✔ تأیید' : 'در انتظار'}</span>
+            </div>
+            <div style="display:flex; gap:0.5rem; margin-top:0.6rem;">
+                <button class="btn btn-sm btn-outline" onclick="openEditOffer(${o.id}, '${escAttr(o.title)}', '${o.price||''}', '${escAttr(o.description||'')}')">ویرایش</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteMyOffer(${o.id})">حذف</button>
+            </div>
         </div>`).join('');
+}
+
+function renderMyServices(list) {
+    const el = document.getElementById('myServicesList');
+    if (!list || !list.length) { el.innerHTML = ''; return; }
+    el.innerHTML = '<h4 style="font-size:0.9rem; margin-bottom:0.5rem;">درخواست‌های خدمات من</h4>' + list.map(s => `
+        <div class="card" style="padding:0.8rem; margin-bottom:0.5rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <b>${esc(s.role_title)}</b>
+                <span class="badge badge-status">${esc(s.status)}</span>
+            </div>
+            <div style="display:flex; gap:0.5rem; margin-top:0.6rem;">
+                <button class="btn btn-sm btn-outline" onclick="openEditService(${s.id}, '${escAttr(s.role_title)}', '${escAttr(s.description||'')}')">ویرایش</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteMyService(${s.id})">حذف</button>
+            </div>
+        </div>`).join('');
+}
+
+function escAttr(s) { return String(s ?? '').replace(/'/g, "\\'").replace(/\n/g, ' '); }
+
+let editTarget = null;
+function openEditOffer(id, title, price, description) {
+    editTarget = { type: 'offer', id };
+    document.getElementById('editItemTitleLabel').textContent = 'عنوان محصول';
+    document.getElementById('editItemTitle').value = title;
+    document.getElementById('editItemExtraGroup').style.display = 'block';
+    document.getElementById('editItemExtraLabel').textContent = 'قیمت (تومان)';
+    document.getElementById('editItemExtra').value = price;
+    document.getElementById('editItemDesc').value = description;
+    document.getElementById('editItemModalTitle').textContent = 'ویرایش آگهی محصول';
+    document.getElementById('editItemModal').classList.add('open');
+}
+function openEditService(id, title, description) {
+    editTarget = { type: 'service', id };
+    document.getElementById('editItemTitleLabel').textContent = 'عنوان نیاز';
+    document.getElementById('editItemTitle').value = title;
+    document.getElementById('editItemExtraGroup').style.display = 'none';
+    document.getElementById('editItemDesc').value = description;
+    document.getElementById('editItemModalTitle').textContent = 'ویرایش درخواست خدمات';
+    document.getElementById('editItemModal').classList.add('open');
+}
+function closeEditItemModal() { document.getElementById('editItemModal').classList.remove('open'); }
+
+async function submitEditItem() {
+    if (!editTarget) return;
+    const title = document.getElementById('editItemTitle').value.trim();
+    const description = document.getElementById('editItemDesc').value;
+    try {
+        if (editTarget.type === 'offer') {
+            const price = document.getElementById('editItemExtra').value;
+            await apiSend('PUT', `/api/company/offers/${editTarget.id}`, { title, price, description }, true);
+        } else {
+            await apiSend('PUT', `/api/company/service-requests/${editTarget.id}`, { role_title: title, description }, true);
+        }
+        showToast('تغییرات برای تایید مدیر ارسال شد', 'success');
+        closeEditItemModal();
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function deleteMyOffer(id) {
+    if (!confirm('این آگهی حذف شود؟')) return;
+    try { await apiSend('DELETE', `/api/company/offers/${id}`, null, true); showToast('حذف شد', 'success'); loadDashboard(); }
+    catch (e) { showToast(e.message, 'error'); }
+}
+async function deleteMyService(id) {
+    if (!confirm('این درخواست حذف شود؟')) return;
+    try { await apiSend('DELETE', `/api/company/service-requests/${id}`, null, true); showToast('حذف شد', 'success'); loadDashboard(); }
+    catch (e) { showToast(e.message, 'error'); }
+}
+async function deleteMyRequest(id) {
+    if (!confirm('این درخواست خرید حذف شود؟')) return;
+    try { await apiSend('DELETE', `/api/company/requests/${id}`, null, true); showToast('حذف شد', 'success'); loadDashboard(); }
+    catch (e) { showToast(e.message, 'error'); }
 }
 
 function renderMyRequests(list) {
@@ -179,7 +259,10 @@ function renderMyRequests(list) {
     if (!list.length) { el.innerHTML = ''; return; }
     el.innerHTML = '<h4 style="font-size:0.9rem; margin-bottom:0.5rem;">درخواست‌های خرید من</h4>' + list.map(r => `
         <div class="card" style="padding:0.8rem; margin-bottom:0.5rem;">
-            <b>${esc(r.product)}</b> — ${esc(r.quantity)} ${esc(r.unit||'')}
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <b>${esc(r.product)}</b> — ${esc(r.quantity)} ${esc(r.unit||'')}
+                <button class="btn btn-sm btn-danger" onclick="deleteMyRequest(${r.id})">حذف</button>
+            </div>
             ${r.responses && r.responses.length
                 ? `<div style="margin-top:0.5rem; font-size:0.82rem;">✅ ${r.responses.length} تأمین‌کننده پاسخ داده:<ul style="margin-top:0.3rem;">${r.responses.map(rr => `<li>${esc(rr.company_name)} — <a href="tel:${esc(rr.phone)}">${esc(rr.phone)}</a></li>`).join('')}</ul></div>`
                 : `<div style="margin-top:0.4rem; font-size:0.8rem; color:var(--text-light);">هنوز پاسخی دریافت نشده</div>`}

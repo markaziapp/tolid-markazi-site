@@ -223,7 +223,7 @@ async function loadPending() {
         el.innerHTML = `<h2 class="section-title">✏️ ویرایش‌های در انتظار تایید</h2>` + (items.map(it => {
             const changes = JSON.parse(it.changes_json || '{}');
             return `<div class="card" style="padding:1rem; margin-bottom:0.8rem;">
-                <div style="font-size:0.85rem; color:var(--text-light);">نوع: ${it.entity_type === 'company' ? 'پروفایل شرکت' : 'آگهی محصول'} • شناسه: ${it.entity_id}</div>
+                <div style="font-size:0.85rem; color:var(--text-light);">نوع: ${{company:'پروفایل شرکت', offer:'آگهی محصول', service_request:'درخواست خدمات'}[it.entity_type] || it.entity_type} • شناسه: ${it.entity_id}</div>
                 <ul class="spec-list">${Object.entries(changes).map(([k,v]) => `<li><span>${esc(k)}</span><span>${esc(v)}</span></li>`).join('')}</ul>
                 <div style="display:flex; gap:0.5rem; margin-top:0.6rem;">
                     <button class="btn btn-primary btn-sm" onclick="decidePending(${it.id},'approved')">تایید و اعمال</button>
