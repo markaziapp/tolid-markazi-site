@@ -27,10 +27,92 @@ async function apiSend(method, path, body, auth) {
 }
 
 function showAuthForm(which) {
+    document.getElementById('authChoiceWrap').style.display = 'none';
     document.getElementById('loginForm').style.display = which === 'login' ? 'block' : 'none';
     document.getElementById('registerForm').style.display = which === 'register' ? 'block' : 'none';
-    document.getElementById('loginTabBtn').classList.toggle('active', which === 'login');
-    document.getElementById('registerTabBtn').classList.toggle('active', which === 'register');
+}
+function backToChoice() {
+    document.getElementById('authChoiceWrap').style.display = 'flex';
+    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('registerForm').style.display = 'none';
+}
+
+// ------------------------------------------------------------------
+// انیمیشن زوم نقشه از کره‌ی زمین تا استان مرکزی، قبل از فرم ثبت‌نام
+// ------------------------------------------------------------------
+const MARKAZI_CENTER = [34.35, 49.9];
+let zoomMapInstance = null;
+function startRegisterAnimation() {
+    const overlay = document.getElementById('zoomOverlay');
+    overlay.classList.add('open');
+    setTimeout(() => {
+        if (!zoomMapInstance) {
+            zoomMapInstance = L.map('zoomMap', { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false }).setView([20, 10], 2);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(zoomMapInstance);
+        } else {
+            zoomMapInstance.setView([20, 10], 2);
+        }
+        setTimeout(() => {
+            zoomMapInstance.flyTo(MARKAZI_CENTER, 9, { duration: 2.2 });
+        }, 300);
+        setTimeout(() => {
+            overlay.classList.remove('open');
+            showAuthForm('register');
+        }, 2900);
+    }, 50);
+}
+
+// ------------------------------------------------------------------
+// نقشه‌ی شهرستان‌ها (شماتیک، هشت‌ضلعی)
+// ------------------------------------------------------------------
+function selectCountyHex(name) {
+    document.querySelectorAll('.county-hex').forEach(el => el.classList.toggle('selected', el.dataset.county === name));
+    document.getElementById('editCounty').value = name;
+    document.getElementById('countyMapHint').textContent = 'شهرستان انتخاب‌شده: ' + name;
+}
+function syncCountyHexFromSelect() {
+    const val = document.getElementById('editCounty').value;
+    if (val) selectCountyHex(val);
+}
+
+// ------------------------------------------------------------------
+// نقشه‌ی واقعی برای ثبت مختصات دقیق کارخانه
+// ------------------------------------------------------------------
+let locationMapInstance = null, locationMarker = null;
+function initLocationMap(lat, lng) {
+    const center = (lat && lng) ? [lat, lng] : MARKAZI_CENTER;
+    if (!locationMapInstance) {
+        locationMapInstance = L.map('locationMap').setView(center, lat ? 13 : 8);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap',
+        }).addTo(locationMapInstance);
+        locationMapInstance.on('click', (e) => setLocationMarker(e.latlng.lat, e.latlng.lng));
+    } else {
+        locationMapInstance.invalidateSize();
+        locationMapInstance.setView(center, lat ? 13 : 8);
+    }
+    if (lat && lng) setLocationMarker(lat, lng, true);
+}
+function setLocationMarker(lat, lng, skipMove) {
+    if (locationMarker) locationMapInstance.removeLayer(locationMarker);
+    locationMarker = L.marker([lat, lng]).addTo(locationMapInstance);
+    document.getElementById('companyLat').value = lat;
+    document.getElementById('companyLng').value = lng;
+    document.getElementById('locationStatus').textContent = `موقعیت ثبت شد (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
+    if (!skipMove) locationMapInstance.panTo([lat, lng]);
+}
+function useMyLocation() {
+    if (!navigator.geolocation) { showToast('مرورگر شما GPS را پشتیبانی نمی‌کند', 'error'); return; }
+    document.getElementById('locationStatus').textContent = 'در حال یافتن موقعیت...';
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            const { latitude, longitude } = pos.coords;
+            locationMapInstance.setView([latitude, longitude], 15);
+            setLocationMarker(latitude, longitude, true);
+        },
+        () => { showToast('دسترسی به موقعیت مکانی رد شد', 'error'); },
+        { enableHighAccuracy: true, timeout: 10000 }
+    );
 }
 
 let countiesCache = [], categoriesCache = [];
@@ -139,6 +221,8 @@ async function loadDashboard() {
         document.getElementById('editProducts').value = data.company.products || '';
         document.getElementById('editCapacity').value = data.company.capacity || '';
         if (data.company.county) document.getElementById('editCounty').value = data.company.county;
+        syncCountyHexFromSelect();
+        setTimeout(() => initLocationMap(data.company.latitude, data.company.longitude), 100);
         if (data.company.category) document.getElementById('editCategory').value = data.company.category;
         document.getElementById('presentationStatus').textContent =
             'وضعیت پرزنت: ' + ({ none: 'ثبت نشده', pending: 'در انتظار تایید', approved: 'تأیید شده', rejected: 'رد شده' }[data.company.presentation_status] || '-');
@@ -374,6 +458,9 @@ async function saveProfileEdit() {
         };
         if (logoUrl) body.logo_url = logoUrl;
         if (licenseUrl) body.license_url = licenseUrl;
+        const lat = document.getElementById('companyLat').value;
+        const lng = document.getElementById('companyLng').value;
+        if (lat && lng) { body.latitude = parseFloat(lat); body.longitude = parseFloat(lng); }
         await apiSend('PUT', '/api/company/profile', body, true);
         showToast('تغییرات برای تایید مدیر ارسال شد', 'success');
         loadDashboard();
