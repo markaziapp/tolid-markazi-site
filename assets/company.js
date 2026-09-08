@@ -26,44 +26,115 @@ async function apiSend(method, path, body, auth) {
     return data;
 }
 
-function showAuthForm(which) {
-    document.getElementById('authChoiceWrap').style.display = 'none';
-    document.getElementById('loginForm').style.display = which === 'login' ? 'block' : 'none';
-    document.getElementById('registerForm').style.display = which === 'register' ? 'block' : 'none';
+// ------------------------------------------------------------------
+// ناوبری بین صفحات ورود/ثبت‌نام
+// ------------------------------------------------------------------
+function showScreen(id) {
+    const flexScreens = ['authEntry', 'mapScreen'];
+    ['authEntry', 'mapScreen', 'regScreen', 'loginScreen', 'dashboardMain'].forEach(s => {
+        const el = document.getElementById(s);
+        if (!el) return;
+        if (s === 'loginScreen') { el.classList.toggle('show', s === id); }
+        else { el.style.display = (s === id) ? (flexScreens.includes(s) ? 'flex' : 'block') : 'none'; }
+    });
+    document.getElementById('mainHeader').style.display = (id === 'dashboardMain') ? 'block' : 'none';
 }
-function backToChoice() {
-    document.getElementById('authChoiceWrap').style.display = 'flex';
-    document.getElementById('loginForm').style.display = 'none';
-    document.getElementById('registerForm').style.display = 'none';
-}
+function goLogin() { showScreen('loginScreen'); }
+function goBack(fromId, toId) { showScreen(toId); }
 
 // ------------------------------------------------------------------
-// انیمیشن زوم نقشه از کره‌ی زمین تا استان مرکزی، قبل از فرم ثبت‌نام
+// نقشه‌ی ثبت موقعیت کارخانه هنگام ثبت‌نام (با جستجوی آدرس مثل گوگل‌مپ)
 // ------------------------------------------------------------------
 const MARKAZI_CENTER = [34.35, 49.9];
-let zoomMapInstance = null;
-function startRegisterAnimation() {
-    const overlay = document.getElementById('zoomOverlay');
-    overlay.classList.add('open');
+let regMapInstance = null, regMarker = null, pendingLat = null, pendingLng = null, searchDebounce = null;
+
+function goMapScreen() {
+    showScreen('mapScreen');
     setTimeout(() => {
-        if (!zoomMapInstance) {
-            zoomMapInstance = L.map('zoomMap', { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false }).setView([20, 10], 2);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(zoomMapInstance);
+        if (!regMapInstance) {
+            regMapInstance = L.map('regMap', { zoomControl: false }).setView(MARKAZI_CENTER, 9);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(regMapInstance);
+            regMapInstance.on('click', (e) => placeRegMarker(e.latlng.lat, e.latlng.lng));
+            // پرواز آرام و باحس صنعتی به‌جای پرش ناگهانی
+            setTimeout(() => regMapInstance.flyTo(MARKAZI_CENTER, 10, { duration: 3.2, easeLinearity: 0.15 }), 400);
         } else {
-            zoomMapInstance.setView([20, 10], 2);
+            regMapInstance.invalidateSize();
         }
-        setTimeout(() => {
-            zoomMapInstance.flyTo(MARKAZI_CENTER, 9, { duration: 2.2 });
-        }, 300);
-        setTimeout(() => {
-            overlay.classList.remove('open');
-            showAuthForm('register');
-        }, 2900);
-    }, 50);
+    }, 60);
+}
+
+function placeRegMarker(lat, lng, label) {
+    pendingLat = lat; pendingLng = lng;
+    if (regMarker) regMapInstance.removeLayer(regMarker);
+    const factoryIcon = L.divIcon({
+        className: 'factory-pin',
+        html: '<div style="font-size:2.2rem; filter:drop-shadow(0 3px 6px rgba(0,0,0,0.5));">🏭</div>',
+        iconSize: [40, 40], iconAnchor: [20, 36],
+    });
+    regMarker = L.marker([lat, lng], { icon: factoryIcon }).addTo(regMapInstance);
+    document.getElementById('mapPlaceName').textContent = label || 'موقعیت انتخاب‌شده روی نقشه';
+    document.getElementById('mapPlaceCoords').textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    document.getElementById('mapConfirmBox').classList.add('show');
+    document.getElementById('mapHint').style.display = 'none';
+}
+
+function useGps() {
+    if (!navigator.geolocation) { showToast('مرورگر شما GPS را پشتیبانی نمی‌کند', 'error'); return; }
+    document.getElementById('mapHint').textContent = 'در حال یافتن موقعیت شما...';
+    document.getElementById('mapHint').style.display = 'block';
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            const { latitude, longitude } = pos.coords;
+            regMapInstance.flyTo([latitude, longitude], 16, { duration: 1.5 });
+            setTimeout(() => placeRegMarker(latitude, longitude, 'موقعیت فعلی شما'), 1500);
+        },
+        () => { showToast('دسترسی به موقعیت مکانی رد شد', 'error'); document.getElementById('mapHint').style.display = 'none'; },
+        { enableHighAccuracy: true, timeout: 10000 }
+    );
+}
+
+function debouncedSearch(q) {
+    clearTimeout(searchDebounce);
+    if (!q || q.trim().length < 3) { document.getElementById('searchResults').style.display = 'none'; return; }
+    searchDebounce = setTimeout(() => doSearch(), 600);
+}
+
+async function doSearch() {
+    const q = document.getElementById('mapSearchInput').value.trim();
+    if (!q) return;
+    const resultsEl = document.getElementById('searchResults');
+    resultsEl.innerHTML = '<div class="search-result-item">در حال جستجو...</div>';
+    resultsEl.style.display = 'block';
+    try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=6&accept-language=fa&q=${encodeURIComponent(q + ' استان مرکزی ایران')}`);
+        const data = await res.json();
+        if (!data.length) { resultsEl.innerHTML = '<div class="search-result-item">نتیجه‌ای یافت نشد</div>'; return; }
+        resultsEl.innerHTML = data.map((d, i) => `<div class="search-result-item" onclick="selectSearchResult(${i})">${esc(d.display_name)}</div>`).join('');
+        window._searchResultsCache = data;
+    } catch (e) {
+        resultsEl.innerHTML = '<div class="search-result-item">خطا در جستجو؛ دوباره تلاش کنید</div>';
+    }
+}
+function selectSearchResult(i) {
+    const d = window._searchResultsCache[i];
+    document.getElementById('searchResults').style.display = 'none';
+    document.getElementById('mapSearchInput').value = d.display_name.split('،')[0];
+    regMapInstance.flyTo([parseFloat(d.lat), parseFloat(d.lon)], 16, { duration: 1.6 });
+    setTimeout(() => placeRegMarker(parseFloat(d.lat), parseFloat(d.lon), d.display_name.split('،')[0]), 1600);
+}
+
+function changeLocation() {
+    document.getElementById('mapConfirmBox').classList.remove('show');
+    document.getElementById('mapHint').textContent = 'روی نقشه ضربه بزنید یا آدرس را جستجو کنید';
+    document.getElementById('mapHint').style.display = 'block';
+}
+function confirmLocation() {
+    if (pendingLat == null) { showToast('ابتدا موقعیتی را روی نقشه انتخاب کنید', 'error'); return; }
+    showScreen('regScreen');
 }
 
 // ------------------------------------------------------------------
-// نقشه‌ی شهرستان‌ها (شماتیک، هشت‌ضلعی)
+// نقشه‌ی شهرستان‌ها (شماتیک، هشت‌ضلعی) — داخل پنل داشبورد برای ویرایش
 // ------------------------------------------------------------------
 function selectCountyHex(name) {
     document.querySelectorAll('.county-hex').forEach(el => el.classList.toggle('selected', el.dataset.county === name));
@@ -76,22 +147,21 @@ function syncCountyHexFromSelect() {
 }
 
 // ------------------------------------------------------------------
-// نقشه‌ی واقعی برای ثبت مختصات دقیق کارخانه
+// نقشه‌ی واقعی داخل داشبورد برای ویرایش بعدی موقعیت کارخانه
 // ------------------------------------------------------------------
 let locationMapInstance = null, locationMarker = null;
 function initLocationMap(lat, lng) {
-    const center = (lat && lng) ? [lat, lng] : MARKAZI_CENTER;
+    const center = (lat && lng) ? [lat, lng] : (pendingLat ? [pendingLat, pendingLng] : MARKAZI_CENTER);
     if (!locationMapInstance) {
-        locationMapInstance = L.map('locationMap').setView(center, lat ? 13 : 8);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap',
-        }).addTo(locationMapInstance);
+        locationMapInstance = L.map('locationMap').setView(center, (lat || pendingLat) ? 13 : 8);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(locationMapInstance);
         locationMapInstance.on('click', (e) => setLocationMarker(e.latlng.lat, e.latlng.lng));
     } else {
         locationMapInstance.invalidateSize();
-        locationMapInstance.setView(center, lat ? 13 : 8);
+        locationMapInstance.setView(center, (lat || pendingLat) ? 13 : 8);
     }
     if (lat && lng) setLocationMarker(lat, lng, true);
+    else if (pendingLat) setLocationMarker(pendingLat, pendingLng, true);
 }
 function setLocationMarker(lat, lng, skipMove) {
     if (locationMarker) locationMapInstance.removeLayer(locationMarker);
@@ -173,6 +243,10 @@ async function doRegister() {
     try {
         const data = await apiSend('POST', '/api/company/register', { name, phone, password, role });
         setToken(data.token);
+        // اگر موقعیت روی نقشه انتخاب شده، همراه اولین ویرایش پروفایل ارسال می‌شود
+        if (pendingLat != null) {
+            try { await apiSend('PUT', '/api/company/profile', { latitude: pendingLat, longitude: pendingLng }, true); } catch {}
+        }
         showToast('ثبت‌نام شما انجام شد', 'success');
         loadDashboard();
     } catch (e) { showToast(e.message, 'error'); }
@@ -200,8 +274,7 @@ async function loadDashboard() {
     try {
         const data = await apiGet('/api/company/dashboard', true);
         currentDashData = data;
-        document.getElementById('authBox').style.display = 'none';
-        document.getElementById('dashboardBox').style.display = 'block';
+        showScreen('dashboardMain');
         document.getElementById('dashCompanyName').textContent = data.company.name + ' — ' + (ROLE_LABELS[data.company.role] || '');
         document.getElementById('verifyNotice').innerHTML = data.company.verified
             ? '<div class="badge badge-verified">✔ حساب شما تأیید شده است</div>'
@@ -245,7 +318,7 @@ async function loadDashboard() {
         });
     } catch (e) {
         clearToken();
-        showToast('نشست شما منقضی شده؛ دوباره وارد شوید', 'error');
+        showScreen('authEntry');
     }
 }
 
@@ -480,6 +553,7 @@ async function submitPresentation() {
 
 window.addEventListener('DOMContentLoaded', () => {
     loadLookups();
-    if (getToken()) loadDashboard();
-    if (location.hash === '#register') showAuthForm('register');
+    if (getToken()) { loadDashboard(); }
+    else if (location.hash === '#register') { goMapScreen(); }
+    else { showScreen('authEntry'); }
 });
