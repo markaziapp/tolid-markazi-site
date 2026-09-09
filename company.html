@@ -74,6 +74,32 @@
   background: #d4a94e; color: #fff; font-family: inherit; font-weight: 700;
   font-size: 0.82rem; cursor: pointer; white-space: nowrap;
 }
+
+/* ===== دکمه‌های سوییچ حالت: نقشه / لیست شهرک‌ها ===== */
+.map-mode-toggle { display: flex; gap: 0.4rem; margin-top: 0.9rem; }
+.mode-btn {
+  flex: 1; padding: 0.55rem 0.4rem; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.7); font-family: inherit; font-size: 0.8rem; font-weight: 700;
+  cursor: pointer; transition: all 0.2s;
+}
+.mode-btn.active { background: #d4a94e; border-color: #d4a94e; color: #fff; }
+
+/* ===== پنل انتخاب از لیست شهرک‌های صنعتی ===== */
+.zone-list-panel {
+  position: absolute; inset: 0; z-index: 500;
+  background: #0a1628; display: flex; align-items: center; justify-content: center;
+  padding: 1.2rem;
+}
+.zone-list-inner { width: 100%; max-width: 420px; }
+.zone-list-inner label { display: block; color: rgba(255,255,255,0.8); font-size: 0.9rem; margin-bottom: 0.6rem; text-align: center; }
+.zone-list-inner select {
+  width: 100%; padding: 0.75rem 0.9rem; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.1);
+  color: #fff; font-family: inherit; font-size: 0.9rem;
+}
+.zone-list-inner select option { background: #0f3460; color: #fff; }
+.zone-hint { color: rgba(255,255,255,0.45); font-size: 0.75rem; text-align: center; margin-top: 0.7rem; }
 .search-results-list {
   position: absolute; top: 100%; right: 0; left: 0;
   background: #fff; border-radius: 10px; max-height: 200px;
@@ -195,12 +221,23 @@
 <!-- ===== صفحه ۲: نقشه برای ثبت موقعیت ===== -->
 <div class="map-screen" id="mapScreen">
     <div id="regMap"></div>
+    <div class="zone-list-panel" id="zoneListPanel" style="display:none;">
+        <div class="zone-list-inner">
+            <label>شهرک یا ناحیه صنعتی محل کارخانه را انتخاب کنید</label>
+            <select id="zoneSelect"><option value="">در حال بارگذاری فهرست...</option></select>
+            <p class="zone-hint">اگر شهرک شما در لیست نیست، از حالت «روی نقشه» بالا استفاده کنید</p>
+        </div>
+    </div>
 
     <div class="map-topbar">
         <button class="back-btn" onclick="goBack('mapScreen','authEntry')">←</button>
         <h2>موقعیت واحد تولیدی</h2>
-        <p>آدرس را جستجو کنید یا روی نقشه کلیک کنید</p>
-        <div class="map-search-bar">
+        <p id="modeTagline">آدرس را جستجو کنید یا روی نقشه کلیک کنید</p>
+        <div class="map-mode-toggle">
+            <button class="mode-btn active" id="modeMapBtn" onclick="setLocationMode('map')">🗺️ روی نقشه</button>
+            <button class="mode-btn" id="modeZoneBtn" onclick="setLocationMode('zone')">🏭 از لیست شهرک‌ها</button>
+        </div>
+        <div class="map-search-bar" id="mapSearchBar">
             <div class="map-search-wrap">
                 <input type="text" id="mapSearchInput" placeholder="نام خیابان، منطقه صنعتی یا آدرس..." oninput="debouncedSearch(this.value)" onkeydown="if(event.key==='Enter') doSearch()">
                 <div class="search-results-list" id="searchResults"></div>
@@ -209,7 +246,7 @@
         </div>
     </div>
 
-    <div class="map-bottom-bar">
+    <div class="map-bottom-bar" id="mapBottomBar">
         <button class="map-gps-btn" onclick="useGps()" title="موقعیت من">📍</button>
         <div class="map-hint" id="mapHint">روی نقشه ضربه بزنید یا آدرس را جستجو کنید</div>
         <div class="map-confirm-box" id="mapConfirmBox">
@@ -220,6 +257,10 @@
                 <button class="btn-change"  onclick="changeLocation()">تغییر موقعیت</button>
             </div>
         </div>
+    </div>
+
+    <div class="map-bottom-bar" id="zoneBottomBar" style="display:none;">
+        <button class="btn-confirm" style="width:100%;" onclick="confirmZoneSelection()">✓ تایید و ادامه</button>
     </div>
 </div>
 
