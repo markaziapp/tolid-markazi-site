@@ -46,10 +46,69 @@ function goBack(fromId, toId) { showScreen(toId); }
 // نقشه‌ی ثبت موقعیت کارخانه هنگام ثبت‌نام (با جستجوی آدرس مثل گوگل‌مپ)
 // ------------------------------------------------------------------
 const MARKAZI_CENTER = [34.35, 49.9];
+const MARKAZI_COUNTIES = ['اراک', 'ساوه', 'خمین', 'محلات', 'دلیجان', 'شازند', 'تفرش', 'آشتیان', 'خنداب', 'فراهان', 'کمیجان', 'زرندیه'];
 let regMapInstance = null, regMarker = null, pendingLat = null, pendingLng = null, searchDebounce = null;
+let pendingCounty = '', pendingIndustrialZone = null;
+let zonesCache = [], zonesLoaded = false;
+
+// ------------------------------------------------------------------
+// سوییچ بین «روی نقشه» و «از لیست شهرک‌های صنعتی»
+// ------------------------------------------------------------------
+function setLocationMode(mode) {
+    const isZone = mode === 'zone';
+    document.getElementById('modeMapBtn').classList.toggle('active', !isZone);
+    document.getElementById('modeZoneBtn').classList.toggle('active', isZone);
+    document.getElementById('zoneListPanel').style.display = isZone ? 'flex' : 'none';
+    document.getElementById('mapSearchBar').style.display = isZone ? 'none' : 'flex';
+    document.getElementById('mapBottomBar').style.display = isZone ? 'none' : 'block';
+    document.getElementById('zoneBottomBar').style.display = isZone ? 'block' : 'none';
+    document.getElementById('modeTagline').textContent = isZone
+        ? 'شهرک یا ناحیهٔ صنعتی محل کارخانه را از لیست انتخاب کنید'
+        : 'آدرس را جستجو کنید یا روی نقشه کلیک کنید';
+    if (isZone && !zonesLoaded) loadIndustrialZones();
+    if (!isZone && regMapInstance) setTimeout(() => regMapInstance.invalidateSize(), 50);
+}
+
+async function loadIndustrialZones() {
+    const sel = document.getElementById('zoneSelect');
+    try {
+        zonesCache = await apiGet('/api/industrial-zones');
+        zonesLoaded = true;
+        if (!zonesCache.length) { sel.innerHTML = '<option value="">فهرستی ثبت نشده</option>'; return; }
+        const byCounty = {};
+        zonesCache.forEach(z => { (byCounty[z.county] = byCounty[z.county] || []).push(z); });
+        sel.innerHTML = '<option value="">— انتخاب کنید —</option>' + Object.keys(byCounty).map(county =>
+            `<optgroup label="${esc(county)}">${byCounty[county].map(z => `<option value="${z.id}">${esc(z.name)}</option>`).join('')}</optgroup>`
+        ).join('');
+    } catch (e) {
+        sel.innerHTML = '<option value="">خطا در بارگذاری فهرست</option>';
+    }
+}
+
+function confirmZoneSelection() {
+    const sel = document.getElementById('zoneSelect');
+    const zone = zonesCache.find(z => String(z.id) === sel.value);
+    if (!zone) { showToast('یک شهرک صنعتی را از لیست انتخاب کنید', 'error'); return; }
+    pendingIndustrialZone = zone.name;
+    pendingCounty = zone.county;
+    pendingLat = null; pendingLng = null; // مختصات دقیق این شهرک ثبت نشده؛ کاربر می‌تواند بعداً از پنل، پین دقیق را هم اضافه کند
+    showScreen('regScreen');
+}
+
+// حدس شهرستان از روی مختصات، با استفاده از همان جواب Nominatim (best-effort)
+function guessCountyFromAddress(addr) {
+    if (!addr) return '';
+    const candidates = [addr.county, addr.state_district, addr.city, addr.town, addr.city_district].filter(Boolean);
+    for (const c of candidates) {
+        const hit = MARKAZI_COUNTIES.find(name => c.includes(name));
+        if (hit) return hit;
+    }
+    return '';
+}
 
 function goMapScreen() {
     showScreen('mapScreen');
+    setLocationMode('map');
     setTimeout(() => {
         if (!regMapInstance) {
             regMapInstance = L.map('regMap', { zoomControl: false }).setView(MARKAZI_CENTER, 9);
@@ -65,6 +124,7 @@ function goMapScreen() {
 
 function placeRegMarker(lat, lng, label) {
     pendingLat = lat; pendingLng = lng;
+    pendingIndustrialZone = null; // پین دستی جایگزین انتخاب شهرک می‌شود
     if (regMarker) regMapInstance.removeLayer(regMarker);
     const factoryIcon = L.divIcon({
         className: 'factory-pin',
@@ -76,6 +136,17 @@ function placeRegMarker(lat, lng, label) {
     document.getElementById('mapPlaceCoords').textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
     document.getElementById('mapConfirmBox').classList.add('show');
     document.getElementById('mapHint').style.display = 'none';
+    guessCountyFromCoords(lat, lng);
+}
+
+// حدس شهرستان از روی مختصات (best-effort، خطا یا نتیجهٔ خالی مشکلی ایجاد نمی‌کند)
+async function guessCountyFromCoords(lat, lng) {
+    pendingCounty = '';
+    try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&accept-language=fa&lat=${lat}&lon=${lng}`);
+        const data = await res.json();
+        pendingCounty = guessCountyFromAddress(data.address);
+    } catch (e) { /* اگر نشد، کاربر خودش بعداً از پنل شهرستان را انتخاب می‌کند */ }
 }
 
 function useGps() {
@@ -241,12 +312,13 @@ async function doRegister() {
     const role = document.getElementById('regRole').value;
     if (!name || !phone || !password) { showToast('همه فیلدها الزامی است', 'error'); return; }
     try {
-        const data = await apiSend('POST', '/api/company/register', { name, phone, password, role });
+        const data = await apiSend('POST', '/api/company/register', {
+            name, phone, password, role,
+            county: pendingCounty || '',
+            latitude: pendingLat, longitude: pendingLng,
+            industrialZone: pendingIndustrialZone || null,
+        });
         setToken(data.token);
-        // اگر موقعیت روی نقشه انتخاب شده، همراه اولین ویرایش پروفایل ارسال می‌شود
-        if (pendingLat != null) {
-            try { await apiSend('PUT', '/api/company/profile', { latitude: pendingLat, longitude: pendingLng }, true); } catch {}
-        }
         showToast('ثبت‌نام شما انجام شد', 'success');
         loadDashboard();
     } catch (e) { showToast(e.message, 'error'); }
