@@ -302,6 +302,12 @@
         <div class="form-group"><label>شماره تماس</label><input type="tel" id="loginPhone" placeholder="09xxxxxxxxx"></div>
         <div class="form-group" style="margin-top:0.8rem;"><label>رمز عبور</label><input type="password" id="loginPassword"></div>
         <button class="btn-reg" onclick="doLogin()">ورود</button>
+        <button type="button" onclick="toggleForgotBox()" style="background:none; border:none; color:rgba(255,255,255,0.6); font-size:0.8rem; margin-top:0.8rem; cursor:pointer; font-family:inherit; width:100%;">رمز عبورم را فراموش کرده‌ام</button>
+        <div id="forgotBox" style="display:none; margin-top:0.8rem; padding-top:0.8rem; border-top:1px solid rgba(255,255,255,0.15);">
+            <p style="font-size:0.78rem; color:rgba(255,255,255,0.6); margin-bottom:0.6rem;">شماره تماس ثبت‌شده‌تان را بفرستید؛ پشتیبانی با شما تماس می‌گیرد و رمز جدید می‌دهد.</p>
+            <div class="form-group"><input type="tel" id="forgotPhone" placeholder="09xxxxxxxxx"></div>
+            <button class="btn-reg" style="margin-top:0.5rem;" onclick="submitForgotPassword()">ارسال درخواست بازیابی</button>
+        </div>
     </div>
 </div>
 
@@ -451,6 +457,13 @@
             <div class="form-group"><label>نوع</label><select id="presentationType"><option value="video_link">لینک ویدیو</option><option value="file">فایل</option></select></div>
             <button class="btn btn-outline" style="width:100%;" onclick="submitPresentation()">ارسال برای تایید مدیر</button>
             <p style="font-size:0.75rem; color:var(--text-light); margin-top:0.5rem;" id="presentationStatus"></p>
+        </div>
+
+        <h3 class="section-title" style="font-size:1.1rem;">🔒 تغییر رمز عبور</h3>
+        <div class="card" style="padding:1rem;">
+            <div class="form-group"><label>رمز فعلی</label><input type="password" id="curPassword"></div>
+            <div class="form-group" style="margin-top:0.6rem;"><label>رمز جدید</label><input type="password" id="newPassword"></div>
+            <button class="btn btn-outline" style="width:100%; margin-top:0.8rem;" onclick="submitChangePassword()">تغییر رمز</button>
         </div>
     </section>
 </main>

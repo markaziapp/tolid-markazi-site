@@ -14,7 +14,9 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css">
 <link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <script src="assets/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script defer src="assets/pwa.js"></script>
 </head>
 <body>
@@ -32,6 +34,7 @@
     <button class="tab-btn" data-tab="requests" onclick="switchTab('requests')">درخواست خرید</button>
     <button class="tab-btn" data-tab="services" onclick="switchTab('services')">درخواست خدمات</button>
     <button class="tab-btn" data-tab="companies" onclick="switchTab('companies')">واحدهای تولیدی</button>
+    <button class="tab-btn" data-tab="map" onclick="switchTab('map')">🗺️ نقشه</button>
     <button class="tab-btn" data-tab="tools" onclick="switchTab('tools')">فایل‌ها</button>
 </nav>
 
@@ -110,6 +113,13 @@
         <div class="search-box" style="margin-bottom:0.6rem;"><span class="search-icon">🔍</span><input type="text" id="companiesSearch" placeholder="جستجوی نام واحد..." oninput="loadCompanies('companiesList')"></div>
         <div style="margin-bottom:1rem;"><button class="btn btn-outline btn-sm" onclick="location.href='company.html#register'">+ ثبت واحد تولیدی من</button></div>
         <div id="companiesList" class="cards-grid"><div class="loading">در حال بارگذاری...</div></div>
+    </section>
+
+    <!-- ===================== نقشهٔ زندهٔ کارخانه‌ها ===================== -->
+    <section id="tab-map" class="tab-page" style="display:none;">
+        <h2 class="section-title">🗺️ نقشهٔ واحدهای تولیدی استان</h2>
+        <p style="font-size:0.82rem; color:var(--text-light); margin-bottom:0.7rem;">روی هر پین کلیک کنید تا پروفایل آن واحد را ببینید</p>
+        <div id="factoryMap" style="height:60vh; min-height:360px; border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow);"></div>
     </section>
 
     <!-- ===================== فایل‌ها ===================== -->
