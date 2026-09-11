@@ -648,7 +648,9 @@ async function loadLookups() {
     const el = document.getElementById('admin-lookups');
     el.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
     try {
-        const [cats, counties] = await Promise.all([apiGet('/api/admin/categories'), apiGet('/api/admin/counties')]);
+        const [cats, counties, zones] = await Promise.all([
+            apiGet('/api/admin/categories'), apiGet('/api/admin/counties'), apiGet('/api/admin/industrial-zones'),
+        ]);
         el.innerHTML = `
         <h2 class="section-title">🏷 دسته‌بندی‌ها</h2>
         <div style="display:flex; gap:0.5rem; margin-bottom:0.8rem;"><input type="text" id="newCatName" placeholder="نام دسته جدید" style="flex:1; padding:0.5rem; border-radius:8px; border:1px solid var(--border);"><button class="btn btn-primary btn-sm" onclick="addCategory()">افزودن</button></div>
@@ -657,8 +659,30 @@ async function loadLookups() {
         <h2 class="section-title">📍 شهرستان‌ها</h2>
         <div style="display:flex; gap:0.5rem; margin-bottom:0.8rem;"><input type="text" id="newCountyName" placeholder="نام شهرستان جدید" style="flex:1; padding:0.5rem; border-radius:8px; border:1px solid var(--border);"><button class="btn btn-primary btn-sm" onclick="addCounty()">افزودن</button></div>
         <table class="admin-table">${counties.map(c => `<tr><td>${esc(c.name)}</td><td><button class="btn btn-sm btn-danger" onclick="delCounty(${c.id})">حذف</button></td></tr>`).join('')}</table>
+
+        <h2 class="section-title">🏭 شهرک‌ها و نواحی صنعتی</h2>
+        <p style="font-size:0.78rem; color:var(--text-light); margin-bottom:0.6rem;">همین فهرست در نقشهٔ ثبت‌نام کارخانه‌ها («از لیست شهرک‌ها») به کاربران نمایش داده می‌شود.</p>
+        <div style="display:flex; gap:0.5rem; margin-bottom:0.8rem; flex-wrap:wrap;">
+            <input type="text" id="newZoneName" placeholder="نام شهرک/ناحیهٔ صنعتی" style="flex:2; min-width:160px; padding:0.5rem; border-radius:8px; border:1px solid var(--border);">
+            <select id="newZoneCounty" style="flex:1; min-width:120px; padding:0.5rem; border-radius:8px; border:1px solid var(--border);">
+                ${counties.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('')}
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="addZone()">افزودن</button>
+        </div>
+        <table class="admin-table">${zones.map(z => `<tr><td>${esc(z.name)}</td><td>${esc(z.county)}</td><td><button class="btn btn-sm btn-danger" onclick="delZone(${z.id})">حذف</button></td></tr>`).join('') || '<tr><td colspan="3">شهرکی ثبت نشده</td></tr>'}</table>
         `;
     } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
+}
+async function addZone() {
+    const name = document.getElementById('newZoneName').value.trim();
+    const county = document.getElementById('newZoneCounty').value;
+    if (!name) return;
+    try { await apiSend('POST', '/api/admin/industrial-zones', { name, county }); loadLookups(); showToast('اضافه شد', 'success'); }
+    catch (e) { showToast(e.message, 'error'); }
+}
+async function delZone(id) {
+    try { await apiSend('DELETE', `/api/admin/industrial-zones/${id}`); loadLookups(); }
+    catch (e) { showToast(e.message, 'error'); }
 }
 async function addCategory() {
     const name = document.getElementById('newCatName').value.trim();

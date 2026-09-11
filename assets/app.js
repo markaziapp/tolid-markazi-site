@@ -366,7 +366,7 @@ async function loadAds() {
         const ads = await apiGet('/api/ads/active');
         const el = document.getElementById('adSlotHome');
         if (!ads.length) { el.innerHTML = ''; return; }
-        el.innerHTML = ads.slice(0, 2).map(ad => {
+        el.innerHTML = ads.slice(0, 3).map(ad => {
             let banner = '';
             if (ad.ad_type === 'image' && ad.image_url) {
                 banner = `<img class="ad-banner-img" src="${esc(ad.image_url)}" alt="${esc(ad.title||'تبلیغ')}" onclick="openLightbox('${esc(ad.image_url)}')" onerror="this.style.display='none'">`;
