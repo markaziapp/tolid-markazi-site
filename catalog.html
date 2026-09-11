@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>کاتالوگ محصولات</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Vazirmatn', Tahoma, sans-serif; direction: rtl; background: #f1f5f9; color: #1e293b; padding: 1rem; }
+  .sheet { max-width: 800px; margin: 0 auto; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+  .toolbar { max-width: 800px; margin: 0 auto 0.8rem; display: flex; justify-content: flex-end; gap: 0.5rem; }
+  .toolbar button { padding: 0.6rem 1.2rem; border-radius: 8px; border: none; background: #0f3460; color: #fff; font-family: inherit; font-weight: 700; font-size: 0.85rem; cursor: pointer; }
+  .cat-header { background: linear-gradient(135deg, #0f3460, #0a2647); color: #fff; padding: 1.6rem 1.4rem; }
+  .cat-header .name { font-size: 1.4rem; font-weight: 800; }
+  .cat-header .meta { font-size: 0.85rem; opacity: 0.8; margin-top: 0.3rem; }
+  .cat-header .tagline { font-size: 0.8rem; color: #d4a94e; font-weight: 700; margin-top: 0.6rem; }
+  .cat-body { padding: 1.2rem 1.4rem; }
+  .product { display: flex; gap: 0.9rem; padding: 0.9rem 0; border-bottom: 1px solid #e2e8f0; }
+  .product:last-child { border-bottom: none; }
+  .product img { width: 90px; height: 90px; object-fit: cover; border-radius: 10px; background: #f1f5f9; flex-shrink: 0; }
+  .product .noimg { width: 90px; height: 90px; border-radius: 10px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; flex-shrink: 0; }
+  .product .title { font-weight: 700; font-size: 0.98rem; }
+  .product .price { color: #b8892f; font-weight: 800; font-size: 0.95rem; margin-top: 0.2rem; }
+  .product .desc { font-size: 0.8rem; color: #64748b; margin-top: 0.3rem; }
+  .cat-footer { background: #f8fafc; padding: 1.2rem 1.4rem; text-align: center; border-top: 1px solid #e2e8f0; }
+  .cat-footer .brand { font-size: 0.78rem; color: #64748b; }
+  .cat-footer .brand b { color: #0f3460; }
+  #loading, #errorBox { max-width: 800px; margin: 2rem auto; text-align: center; color: #64748b; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .toolbar { display: none; }
+    .sheet { box-shadow: none; border-radius: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+    <button onclick="window.print()">🖨️ دانلود / چاپ PDF</button>
+</div>
+
+<div id="loading">در حال ساخت کاتالوگ...</div>
+<div id="errorBox" style="display:none;">کاتالوگی برای نمایش پیدا نشد.</div>
+
+<div class="sheet" id="sheet" style="display:none;">
+    <div class="cat-header">
+        <div class="name" id="cName"></div>
+        <div class="meta" id="cMeta"></div>
+        <div class="tagline">کاتالوگ محصولات — همتا صنعت مرکزی</div>
+    </div>
+    <div class="cat-body" id="cProducts"></div>
+    <div class="cat-footer">
+        <div class="brand" id="cContact"></div>
+        <div class="brand" style="margin-top:0.3rem;">تهیه‌شده در <b>همتا صنعت مرکزی</b> — hamtasanat.ir</div>
+    </div>
+</div>
+
+<script>
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function api(path) { return (window.API_BASE || '') + path; }
+
+async function loadCatalog() {
+    const id = new URLSearchParams(location.search).get('id');
+    if (!id) { showError(); return; }
+    try {
+        const [company, offers] = await Promise.all([
+            fetch(api(`/api/companies/${id}`)).then(r => r.json()),
+            fetch(api(`/api/offers?companyId=${id}&limit=100`)).then(r => r.json()),
+        ]);
+        if (!company || company.error) { showError(); return; }
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('sheet').style.display = 'block';
+        document.getElementById('cName').textContent = company.name;
+        document.getElementById('cMeta').textContent = `${company.county || ''} — استان مرکزی`;
+        document.getElementById('cContact').innerHTML = `تماس: <b>${esc(company.phone || '')}</b>`;
+        document.title = `کاتالوگ ${company.name}`;
+
+        const list = offers.filter(o => o.company_id == id);
+        const box = document.getElementById('cProducts');
+        if (!list.length) { box.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:1.5rem 0;">هنوز محصولی ثبت نشده است</p>'; return; }
+        box.innerHTML = list.map(o => `
+            <div class="product">
+                ${o.image_url ? `<img src="${esc(o.image_url)}" alt="${esc(o.title)}" onerror="this.outerHTML='<div class=noimg>📦</div>'">` : '<div class="noimg">📦</div>'}
+                <div>
+                    <div class="title">${esc(o.title)}</div>
+                    <div class="price">${esc(o.price || 'توافقی')} ${esc(o.unit || '')}</div>
+                    ${o.description ? `<div class="desc">${esc(o.description).slice(0, 120)}</div>` : ''}
+                </div>
+            </div>
+        `).join('');
+    } catch (e) { showError(); }
+}
+function showError() {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('errorBox').style.display = 'block';
+}
+window.addEventListener('DOMContentLoaded', loadCatalog);
+</script>
+<script src="assets/config.js"></script>
+</body>
+</html>
