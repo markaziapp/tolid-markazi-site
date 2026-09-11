@@ -635,7 +635,7 @@ let notifPollInterval = null;
 
 async function loadNotifications() {
     try {
-        const data = await apiGet('/api/company/notifications', true);
+        const data = await apiGet('/api/company/inbox', true);
         const badge = document.getElementById('notifBadge');
         if (data.unread > 0) { badge.style.display = 'flex'; badge.textContent = data.unread > 9 ? '9+' : data.unread; }
         else { badge.style.display = 'none'; }
@@ -660,11 +660,11 @@ function toggleNotifDropdown() {
 }
 
 async function markAllNotifsRead() {
-    try { await apiSend('POST', '/api/company/notifications/read-all', {}, true); loadNotifications(); } catch (e) {}
+    try { await apiSend('POST', '/api/company/inbox/read-all', {}, true); loadNotifications(); } catch (e) {}
 }
 
 async function openNotification(id, link) {
-    try { await apiSend('POST', `/api/company/notifications/${id}/read`, {}, true); } catch (e) {}
+    try { await apiSend('POST', `/api/company/inbox/${id}/read`, {}, true); } catch (e) {}
     loadNotifications();
     document.getElementById('notifDropdown').style.display = 'none';
     const m = (link || '').match(/^#chat-(\d+)/);

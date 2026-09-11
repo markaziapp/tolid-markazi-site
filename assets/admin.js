@@ -79,9 +79,10 @@ async function loadNotifications() {
         const badge = document.getElementById('notifBadge');
         if (n.total > 0) { badge.textContent = n.total; badge.style.display = 'inline-block'; }
         else { badge.style.display = 'none'; }
-        setTabBadge('tabBadgePending', n.pendingEdits + n.pendingPresentations);
+        setTabBadge('tabBadgePending', n.pendingEdits + n.pendingPresentations + n.pendingReviews);
         setTabBadge('tabBadgeAds', n.pendingAds);
         setTabBadge('tabBadgeMessages', n.unreadMessages);
+        setTabBadge('tabBadgeChat', n.pendingReports);
     } catch {}
 }
 function setTabBadge(id, count) {
@@ -97,7 +98,8 @@ function switchAdminTab(tab) {
     document.querySelectorAll('#adminTabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     const loaders = {
         overview: loadOverview, pending: loadPending, companies: loadCompanies, offers: loadOffers,
-        requests: loadRequests, rfqs: loadRfqs, services: loadServices, ads: loadAds, messages: loadMessages, files: loadFiles, lookups: loadLookups,
+        requests: loadRequests, rfqs: loadRfqs, services: loadServices, ads: loadAds, messages: loadMessages,
+        files: loadFiles, lookups: loadLookups, chat: loadAdminChat,
     };
     loaders[tab] && loaders[tab]();
 }
@@ -220,6 +222,7 @@ async function loadPending() {
     el.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
     try {
         const items = await apiGet('/api/admin/pending-edits');
+        const reviews = await apiGet('/api/admin/reviews?status=pending');
         el.innerHTML = `<h2 class="section-title">✏️ ویرایش‌های در انتظار تایید</h2>` + (items.map(it => {
             const changes = JSON.parse(it.changes_json || '{}');
             return `<div class="card" style="padding:1rem; margin-bottom:0.8rem;">
@@ -230,11 +233,99 @@ async function loadPending() {
                     <button class="btn btn-danger btn-sm" onclick="decidePending(${it.id},'rejected')">رد</button>
                 </div>
             </div>`;
-        }).join('') || '<div class="empty-state">چیزی در انتظار تایید نیست</div>');
+        }).join('') || '<div class="empty-state">چیزی در انتظار تایید نیست</div>')
+        + `<h2 class="section-title" style="margin-top:1.2rem;">⭐ نظرات در انتظار تایید</h2>`
+        + (reviews.map(r => `
+            <div class="card" style="padding:1rem; margin-bottom:0.8rem;">
+                <div style="font-size:0.85rem;">نظر <b>${esc(r.reviewer_name)}</b> دربارهٔ <b>${esc(r.company_name)}</b></div>
+                <div style="margin:0.4rem 0; color:#b8860b;">${'⭐'.repeat(r.rating)}</div>
+                ${r.comment ? `<p style="font-size:0.85rem;">${esc(r.comment)}</p>` : ''}
+                <div style="display:flex; gap:0.5rem; margin-top:0.6rem;">
+                    <button class="btn btn-primary btn-sm" onclick="decideReview(${r.id},'approve')">تایید و نمایش عمومی</button>
+                    <button class="btn btn-danger btn-sm" onclick="decideReview(${r.id},'reject')">رد</button>
+                </div>
+            </div>
+        `).join('') || '<div class="empty-state">نظری در انتظار تایید نیست</div>');
     } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
+}
+async function decideReview(id, decision) {
+    try { await apiSend('POST', `/api/admin/reviews/${id}/${decision}`, {}); showToast('ثبت شد', 'success'); loadPending(); loadNotifications(); }
+    catch (e) { showToast(e.message, 'error'); }
 }
 async function decidePending(id, decision) {
     try { await apiSend('PUT', `/api/admin/pending-edits/${id}`, { decision }); showToast('ثبت شد', 'success'); loadPending(); loadNotifications(); }
+    catch (e) { showToast(e.message, 'error'); }
+}
+
+// ------------------------------------------------------------------
+// نظارت بر گفتگوها (چت داخلی) و گزارش‌های تخلف
+// ------------------------------------------------------------------
+async function loadAdminChat() {
+    const el = document.getElementById('admin-chat');
+    el.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
+    try {
+        const [convos, reports] = await Promise.all([
+            apiGet('/api/admin/conversations'),
+            apiGet('/api/admin/message-reports'),
+        ]);
+        el.innerHTML = `
+            <h2 class="section-title">🚩 گزارش‌های تخلف</h2>
+            ${reports.map(r => `
+                <div class="card" style="padding:1rem; margin-bottom:0.8rem; border-right:3px solid #dc2626;">
+                    <div style="font-size:0.85rem; color:var(--text-light);">گزارش‌دهنده: ${esc(r.reported_by_name)}</div>
+                    <p style="font-size:0.85rem; margin:0.3rem 0;">متن پیام: «${esc(r.message_body)}»</p>
+                    ${r.reason ? `<div style="font-size:0.8rem; color:#dc2626;">دلیل: ${esc(r.reason)}</div>` : ''}
+                    <div style="display:flex; gap:0.5rem; margin-top:0.6rem;">
+                        <button class="btn btn-outline btn-sm" onclick="viewAdminThread(${r.conversation_id})">مشاهدهٔ گفتگو</button>
+                        <button class="btn btn-danger btn-sm" onclick="closeAdminConversation(${r.conversation_id})">بستن گفتگو</button>
+                        <button class="btn btn-primary btn-sm" onclick="resolveReport(${r.id})">بررسی شد</button>
+                    </div>
+                </div>
+            `).join('') || '<div class="empty-state">گزارش تخلفی ثبت نشده</div>'}
+
+            <h2 class="section-title" style="margin-top:1.2rem;">💬 همهٔ گفتگوها</h2>
+            <div class="table-wrap"><table class="admin-table">
+                <tr><th>طرف اول</th><th>طرف دوم</th><th>تعداد پیام</th><th>وضعیت</th><th>عملیات</th></tr>
+                ${convos.map(c => `<tr>
+                    <td>${esc(c.company_a_name)}</td>
+                    <td>${esc(c.company_b_name)}</td>
+                    <td>${c.message_count}${c.pending_reports > 0 ? ` <span class="tab-badge" style="display:inline-block;">${c.pending_reports}</span>` : ''}</td>
+                    <td>${c.status === 'closed_by_admin' ? 'بسته‌شده' : 'باز'}</td>
+                    <td style="white-space:nowrap;">
+                        <button class="btn btn-sm btn-outline" onclick="viewAdminThread(${c.id})">مشاهده</button>
+                        ${c.status === 'closed_by_admin'
+                            ? `<button class="btn btn-sm btn-primary" onclick="reopenAdminConversation(${c.id})">بازگشایی</button>`
+                            : `<button class="btn btn-sm btn-danger" onclick="closeAdminConversation(${c.id})">بستن</button>`}
+                    </td>
+                </tr>`).join('') || '<tr><td colspan="5">گفتگویی ثبت نشده</td></tr>'}
+            </table></div>
+            <div id="adminThreadView" style="display:none; margin-top:1rem;"></div>
+        `;
+    } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
+}
+async function viewAdminThread(conversationId) {
+    const box = document.getElementById('adminThreadView');
+    box.style.display = 'block';
+    box.innerHTML = '<div class="loading">در حال بارگذاری گفتگو...</div>';
+    box.scrollIntoView({ behavior: 'smooth' });
+    try {
+        const msgs = await apiGet(`/api/admin/conversations/${conversationId}/messages`);
+        box.innerHTML = `<h3 class="section-title" style="font-size:1rem;">متن گفتگو</h3>
+            <div class="card" style="padding:1rem; max-height:360px; overflow-y:auto;">
+                ${msgs.map(m => `<div style="margin-bottom:0.6rem;"><b>${esc(m.sender_name)}</b> <span style="color:var(--text-light); font-size:0.72rem;">${esc((m.created_at||'').slice(0,16))}</span><div>${esc(m.body)}</div></div>`).join('') || '<div class="empty-state">پیامی نیست</div>'}
+            </div>`;
+    } catch (e) { box.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
+}
+async function closeAdminConversation(id) {
+    try { await apiSend('POST', `/api/admin/conversations/${id}/close`, {}); showToast('گفتگو بسته شد', 'success'); loadAdminChat(); }
+    catch (e) { showToast(e.message, 'error'); }
+}
+async function reopenAdminConversation(id) {
+    try { await apiSend('POST', `/api/admin/conversations/${id}/reopen`, {}); showToast('گفتگو بازگشایی شد', 'success'); loadAdminChat(); }
+    catch (e) { showToast(e.message, 'error'); }
+}
+async function resolveReport(id) {
+    try { await apiSend('POST', `/api/admin/message-reports/${id}/resolve`, {}); showToast('ثبت شد', 'success'); loadAdminChat(); loadNotifications(); }
     catch (e) { showToast(e.message, 'error'); }
 }
 
