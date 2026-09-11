@@ -245,6 +245,7 @@ function companyCard(c) {
         </div>
         <div class="card-footer">
             <button class="btn btn-primary btn-sm" onclick="startChatWith(${c.id})">💬 گفتگو</button>
+            <a class="btn btn-outline btn-sm" href="company-profile.html?id=${c.id}">مشاهده پروفایل</a>
         </div>
     </div>`;
 }
