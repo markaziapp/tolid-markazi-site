@@ -4,6 +4,28 @@
 // ===================================================================
 function api(path) { return (window.API_BASE || '') + path; }
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+// تبدیل تاریخ میلادی ذخیره‌شده در دیتابیس به شمسی
+function toPersianDate(input, withTime) {
+    if (!input) return '';
+    const d = new Date(String(input).replace(' ', 'T') + 'Z');
+    if (isNaN(d)) return input;
+    const g_d_m = [0,31,59,90,120,151,181,212,243,273,304,334];
+    let gy = d.getUTCFullYear(), gm = d.getUTCMonth() + 1, gd = d.getUTCDate();
+    let jy = (gy <= 1600) ? 0 : 979;
+    gy -= (gy <= 1600) ? 621 : 1600;
+    const gy2 = (gm > 2) ? (gy + 1) : gy;
+    let days = (365 * gy) + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) - 80 + gd + g_d_m[gm - 1];
+    jy += 33 * Math.floor(days / 12053); days %= 12053;
+    jy += 4 * Math.floor(days / 1461); days %= 1461;
+    jy += Math.floor((days - 1) / 365);
+    if (days > 365) days = (days - 1) % 365;
+    const jm = (days < 186) ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
+    const jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
+    const pad = n => String(n).padStart(2, '0');
+    let out = `${jy}/${pad(jm)}/${pad(jd)}`;
+    if (withTime) out += ` ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+    return out;
+}
 function getToken() { return localStorage.getItem('companyToken'); }
 function isLoggedIn() { return !!getToken(); }
 
@@ -95,9 +117,7 @@ function toggleQr() {
     box.style.display = isOpen ? 'none' : 'block';
     if (!isOpen && currentCompany) {
         const url = `${location.origin}${location.pathname}?id=${currentCompany.id}`;
-        QRCode.toCanvas(document.getElementById('qrCanvas'), url, { width: 220 }, (err) => {
-            if (err) showToast('ساخت QR ممکن نشد', 'error');
-        });
+        document.getElementById('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(url)}`;
     }
 }
 
@@ -110,7 +130,7 @@ async function loadReviews() {
             <div style="padding:0.6rem 0; border-bottom:1px solid #f0f0f0;">
                 <div style="color:#b8860b;">${'⭐'.repeat(r.rating)}</div>
                 ${r.comment ? `<p style="font-size:0.85rem; margin-top:0.2rem;">${esc(r.comment)}</p>` : ''}
-                <div style="font-size:0.72rem; color:var(--text-light); margin-top:0.2rem;">${esc(r.reviewer_name)} • ${esc((r.created_at || '').slice(0, 10))}</div>
+                <div style="font-size:0.72rem; color:var(--text-light); margin-top:0.2rem;">${esc(r.reviewer_name)} • ${esc(toPersianDate(r.created_at))}</div>
             </div>
         `).join('');
     } catch (e) { /* اگر نشد، بخش نظرات خالی می‌ماند */ }

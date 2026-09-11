@@ -5,6 +5,28 @@ function showToast(msg, type = '') {
     setTimeout(() => t.classList.remove('show'), 3500);
 }
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+// تبدیل تاریخ میلادی ذخیره‌شده در دیتابیس به شمسی
+function toPersianDate(input, withTime) {
+    if (!input) return '';
+    const d = new Date(String(input).replace(' ', 'T') + 'Z');
+    if (isNaN(d)) return input;
+    const g_d_m = [0,31,59,90,120,151,181,212,243,273,304,334];
+    let gy = d.getUTCFullYear(), gm = d.getUTCMonth() + 1, gd = d.getUTCDate();
+    let jy = (gy <= 1600) ? 0 : 979;
+    gy -= (gy <= 1600) ? 621 : 1600;
+    const gy2 = (gm > 2) ? (gy + 1) : gy;
+    let days = (365 * gy) + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) - 80 + gd + g_d_m[gm - 1];
+    jy += 33 * Math.floor(days / 12053); days %= 12053;
+    jy += 4 * Math.floor(days / 1461); days %= 1461;
+    jy += Math.floor((days - 1) / 365);
+    if (days > 365) days = (days - 1) % 365;
+    const jm = (days < 186) ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
+    const jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
+    const pad = n => String(n).padStart(2, '0');
+    let out = `${jy}/${pad(jm)}/${pad(jd)}`;
+    if (withTime) out += ` ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+    return out;
+}
 
 function getToken() { return localStorage.getItem('companyToken'); }
 function setToken(t) { localStorage.setItem('companyToken', t); }
@@ -379,12 +401,30 @@ async function loadDashboard() {
         renderRfqsReceived(data.rfqsReceived || []);
         checkNewActivity(data);
         loadNotifications();
-        loadConversations().then(() => {
-            const m = location.hash.match(/^#chat-(\d+)/);
-            if (m) openChatThread(parseInt(m[1]));
-        });
+        checkChatEnabled();
 
-        const labels = (data.monthlyViews || []).map(m => m.month).reverse();
+        function checkChatEnabled() {
+            apiGet('/api/platform-settings').then(s => {
+                const chatCard = document.getElementById('chatCard');
+                const chatHeading = chatCard?.previousElementSibling;
+                if (!s.chat_enabled) {
+                    if (chatCard) chatCard.style.display = 'none';
+                    if (chatHeading) chatHeading.style.display = 'none';
+                    return;
+                }
+                if (chatCard) chatCard.style.display = '';
+                if (chatHeading) chatHeading.style.display = '';
+                loadConversations().then(() => {
+                    const m = location.hash.match(/^#chat-(\d+)/);
+                    if (m) openChatThread(parseInt(m[1]));
+                });
+            }).catch(() => {
+                // اگر تنظیمات در دسترس نبود، فرض را بر فعال‌بودن چت می‌گذاریم
+                loadConversations();
+            });
+        }
+
+        const labels = (data.monthlyViews || []).map(m => toPersianDate(m.month + '-01').slice(0, 7)).reverse();
         const values = (data.monthlyViews || []).map(m => m.c).reverse();
         if (chartInstance) chartInstance.destroy();
         const ctx = document.getElementById('viewsChart');
@@ -645,7 +685,7 @@ async function loadNotifications() {
             <div class="notif-item ${n.is_read ? '' : 'unread'}" onclick="openNotification(${n.id}, '${escAttr(n.link || '')}')">
                 <div class="notif-title">${esc(n.title)}</div>
                 <div>${esc(n.body || '')}</div>
-                <div class="notif-time">${esc((n.created_at || '').slice(0, 16))}</div>
+                <div class="notif-time">${esc(toPersianDate(n.created_at, true))}</div>
             </div>
         `).join('');
     } catch (e) { /* اگر نشد، بی‌سروصدا رد می‌شود */ }
@@ -685,7 +725,7 @@ async function loadConversations() {
         el.innerHTML = list.map(c => `
             <div class="chat-list-item" onclick="openChatThread(${c.id})">
                 <div>
-                    <div class="chat-list-name">${esc(c.other_name)}</div>
+                    <div class="chat-list-name">${esc(c.other_name)} ${c.pending_approval ? '<span class="badge badge-status">در انتظار تایید مدیر</span>' : ''}</div>
                     <div class="chat-list-preview">${esc(c.last_message || 'گفتگو را شروع کنید')}</div>
                 </div>
                 ${c.unread_count > 0 ? `<span class="chat-unread-badge">${c.unread_count}</span>` : ''}

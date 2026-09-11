@@ -12,6 +12,14 @@ function getToken() { return localStorage.getItem('companyToken'); }
 function setToken(t) { localStorage.setItem('companyToken', t); }
 function clearToken() { localStorage.removeItem('companyToken'); }
 function isLoggedIn() { return !!getToken(); }
+function getMyCompanyId() {
+    const t = getToken();
+    if (!t || !t.includes('.')) return null;
+    try {
+        const payload = JSON.parse(decodeURIComponent(escape(atob(t.split('.')[0]))));
+        return payload.companyId || null;
+    } catch { return null; }
+}
 
 function requireLogin(actionLabel) {
     if (isLoggedIn()) return true;
@@ -177,10 +185,11 @@ function requestCard(req) {
     const responseNote = req.response_count > 0
         ? `<div class="badge badge-verified" style="display:block; margin-top:0.5rem;">✔ ${req.response_count} تأمین‌کننده اعلام آمادگی کرده‌اند</div>`
         : `<div class="badge badge-status" style="display:block; margin-top:0.5rem;">هنوز پاسخی ثبت نشده</div>`;
+    const isMine = getMyCompanyId() === req.company_id;
     return `
     <div class="card">
         <div class="card-header">
-            <div><div class="card-title">${esc(req.product)}</div><div class="card-subtitle">${esc(req.company)} • ${esc(req.county||'')}</div></div>
+            <div><div class="card-title">${esc(req.product)}</div><div class="card-subtitle">${esc(req.company)} • ${esc(req.county||'')} • ${esc(toPersianDate(req.created_at))}</div></div>
             <span class="badge badge-urgent">${esc(req.status)}</span>
         </div>
         <div class="card-body">
@@ -192,7 +201,7 @@ function requestCard(req) {
             ${responseNote}
         </div>
         <div class="card-footer">
-            <button class="btn btn-gold btn-sm" onclick="respondToRequest(${req.id})">من می‌توانم تأمین کنم</button>
+            ${isMine ? '' : `<button class="btn btn-gold btn-sm" onclick="respondToRequest(${req.id})">من می‌توانم تأمین کنم</button>`}
             <button class="btn btn-outline btn-sm" onclick="showRequestDetails(${req.id})">جزئیات</button>
         </div>
     </div>`;
@@ -201,6 +210,7 @@ function requestCard(req) {
 function offerCard(offer) {
     const featured = offer.featured_approved ? '<span class="badge badge-featured">⭐ ویژه</span>' : '';
     const verified = offer.company_verified ? '<span class="badge badge-verified">✔ تأیید شده</span>' : '';
+    const isMine = getMyCompanyId() === offer.company_id;
     let specs = {};
     try { specs = JSON.parse(offer.specs_json || '{}'); } catch {}
     const specsText = Object.entries(specs).slice(0, 2).map(([k,v]) => `${esc(k)}: ${esc(v)}`).join(' • ');
@@ -219,12 +229,12 @@ function offerCard(offer) {
                 <div class="card-subtitle">${esc(offer.company_name)} ${verified}</div>
                 ${specsText ? `<div class="thumb-specs">${specsText}</div>` : ''}
                 <div class="price-tag" style="font-size:0.95rem;">${esc(offer.price||'توافقی')} <small>${esc(offer.unit||'')}</small></div>
-                <div style="font-size:0.78rem; color:var(--text-light);">📍 ${esc(offer.county||'')} ${offer.moq ? '• حداقل: ' + esc(offer.moq) : ''}</div>
+                <div style="font-size:0.78rem; color:var(--text-light);">📍 ${esc(offer.county||'')} ${offer.moq ? '• حداقل: ' + esc(offer.moq) : ''} • ${esc(toPersianDate(offer.created_at))}</div>
             </div>
         </div>
         <div class="card-footer">
             <button class="btn btn-outline btn-sm" onclick="showOfferDetails(${offer.id})">جزئیات</button>
-            <button class="btn btn-primary btn-sm" onclick="openRfq(${offer.id})">درخواست استعلام</button>
+            ${isMine ? '' : `<button class="btn btn-primary btn-sm" onclick="openRfq(${offer.id})">درخواست استعلام</button>`}
         </div>
     </div>`;
 }
@@ -254,7 +264,7 @@ function serviceCard(s) {
     return `
     <div class="card">
         <div class="card-header">
-            <div><div class="card-title">${esc(s.role_title)}</div><div class="card-subtitle">${esc(s.company)} • ${esc(s.county||'')}</div></div>
+            <div><div class="card-title">${esc(s.role_title)}</div><div class="card-subtitle">${esc(s.company)} • ${esc(s.county||'')} • ${esc(toPersianDate(s.created_at))}</div></div>
             <span class="badge badge-urgent">${esc(s.urgency)}</span>
         </div>
         <div class="card-body">
@@ -266,6 +276,28 @@ function serviceCard(s) {
 }
 
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+// تبدیل تاریخ میلادی ذخیره‌شده در دیتابیس به شمسی
+function toPersianDate(input, withTime) {
+    if (!input) return '';
+    const d = new Date(String(input).replace(' ', 'T') + 'Z');
+    if (isNaN(d)) return input;
+    const g_d_m = [0,31,59,90,120,151,181,212,243,273,304,334];
+    let gy = d.getUTCFullYear(), gm = d.getUTCMonth() + 1, gd = d.getUTCDate();
+    let jy = (gy <= 1600) ? 0 : 979;
+    gy -= (gy <= 1600) ? 621 : 1600;
+    const gy2 = (gm > 2) ? (gy + 1) : gy;
+    let days = (365 * gy) + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) - 80 + gd + g_d_m[gm - 1];
+    jy += 33 * Math.floor(days / 12053); days %= 12053;
+    jy += 4 * Math.floor(days / 1461); days %= 1461;
+    jy += Math.floor((days - 1) / 365);
+    if (days > 365) days = (days - 1) % 365;
+    const jm = (days < 186) ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
+    const jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
+    const pad = n => String(n).padStart(2, '0');
+    let out = `${jy}/${pad(jm)}/${pad(jd)}`;
+    if (withTime) out += ` ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+    return out;
+}
 
 // ------------------------------------------------------------------
 // بارگذاری لیست‌ها
@@ -365,8 +397,10 @@ async function loadAds() {
     try {
         const ads = await apiGet('/api/ads/active');
         const el = document.getElementById('adSlotHome');
-        if (!ads.length) { el.innerHTML = ''; return; }
-        el.innerHTML = ads.slice(0, 3).map(ad => {
+        if (!ads.length) { el.innerHTML = ''; el.className = ''; return; }
+        const shown = ads.slice(0, 3);
+        el.className = shown.length === 1 ? 'ads-single' : (shown.length === 2 ? 'ads-multi ads-multi-2' : 'ads-multi ads-multi-3');
+        el.innerHTML = shown.map(ad => {
             let banner = '';
             if (ad.ad_type === 'image' && ad.image_url) {
                 banner = `<img class="ad-banner-img" src="${esc(ad.image_url)}" alt="${esc(ad.title||'تبلیغ')}" onclick="openLightbox('${esc(ad.image_url)}')" onerror="this.style.display='none'">`;
@@ -577,7 +611,7 @@ async function showOfferDetails(id) {
             <p><b>شهرستان:</b> ${esc(o.county||'')}</p>
             <p><b>شرایط پرداخت:</b> ${esc(o.payment||'')}</p>
             <p style="margin-top:0.5rem;">${esc(o.description||'')}</p>
-            <button class="btn btn-primary" style="width:100%; margin-top:1rem;" onclick="closeModal('detailsModal'); openRfq(${o.id})">درخواست استعلام قیمت</button>
+            ${getMyCompanyId() === o.company_id ? '' : `<button class="btn btn-primary" style="width:100%; margin-top:1rem;" onclick="closeModal('detailsModal'); openRfq(${o.id})">درخواست استعلام قیمت</button>`}
         `;
         openModal('detailsModal');
     } catch (e) { showToast(e.message, 'error'); }
@@ -593,7 +627,7 @@ function showRequestDetails(id) {
             <p><b>مشخصات:</b> ${esc(r.specs||'-')}</p>
             <p><b>زمان تأمین:</b> ${esc(r.deadline||'-')}</p>
             <p style="margin-top:0.5rem;">${esc(r.description||'')}</p>
-            <button class="btn btn-gold" style="width:100%; margin-top:1rem;" onclick="closeModal('detailsModal'); respondToRequest(${r.id})">من می‌توانم تأمین کنم</button>
+            ${getMyCompanyId() === r.company_id ? '' : `<button class="btn btn-gold" style="width:100%; margin-top:1rem;" onclick="closeModal('detailsModal'); respondToRequest(${r.id})">من می‌توانم تأمین کنم</button>`}
         `;
         openModal('detailsModal');
     });

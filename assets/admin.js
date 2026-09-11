@@ -5,6 +5,28 @@ function showToast(msg, type = '') {
     setTimeout(() => t.classList.remove('show'), 3500);
 }
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+// تبدیل تاریخ میلادی ذخیره‌شده در دیتابیس به شمسی (برای نمایش در همه‌جای پنل)
+function toPersianDate(input, withTime) {
+    if (!input) return '';
+    const d = new Date(String(input).replace(' ', 'T') + 'Z');
+    if (isNaN(d)) return input;
+    const g_d_m = [0,31,59,90,120,151,181,212,243,273,304,334];
+    let gy = d.getUTCFullYear(), gm = d.getUTCMonth() + 1, gd = d.getUTCDate();
+    let jy = (gy <= 1600) ? 0 : 979;
+    gy -= (gy <= 1600) ? 621 : 1600;
+    const gy2 = (gm > 2) ? (gy + 1) : gy;
+    let days = (365 * gy) + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) - 80 + gd + g_d_m[gm - 1];
+    jy += 33 * Math.floor(days / 12053); days %= 12053;
+    jy += 4 * Math.floor(days / 1461); days %= 1461;
+    jy += Math.floor((days - 1) / 365);
+    if (days > 365) days = (days - 1) % 365;
+    const jm = (days < 186) ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
+    const jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
+    const pad = n => String(n).padStart(2, '0');
+    let out = `${jy}/${pad(jm)}/${pad(jd)}`;
+    if (withTime) out += ` ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+    return out;
+}
 const ROLE_LABELS = { producer: 'تولیدکننده', service: 'خدمات‌دهنده', buyer: 'خریدار', other: 'سایر' };
 function openLightbox(url) {
     if (!url) return;
@@ -82,7 +104,7 @@ async function loadNotifications() {
         setTabBadge('tabBadgePending', n.pendingEdits + n.pendingPresentations + n.pendingReviews);
         setTabBadge('tabBadgeAds', n.pendingAds);
         setTabBadge('tabBadgeMessages', n.unreadMessages);
-        setTabBadge('tabBadgeChat', n.pendingReports);
+        setTabBadge('tabBadgeChat', n.pendingReports + n.pendingConversations);
     } catch {}
 }
 function setTabBadge(id, count) {
@@ -226,7 +248,7 @@ async function loadPending() {
         el.innerHTML = `<h2 class="section-title">✏️ ویرایش‌های در انتظار تایید</h2>` + (items.map(it => {
             const changes = JSON.parse(it.changes_json || '{}');
             return `<div class="card" style="padding:1rem; margin-bottom:0.8rem;">
-                <div style="font-size:0.85rem; color:var(--text-light);">نوع: ${{company:'پروفایل شرکت', offer:'آگهی محصول', service_request:'درخواست خدمات'}[it.entity_type] || it.entity_type} • شناسه: ${it.entity_id}</div>
+                <div style="font-size:0.85rem; color:var(--text-light);">نوع: ${{company:'پروفایل شرکت', offer:'آگهی محصول', service_request:'درخواست خدمات'}[it.entity_type] || it.entity_type} • شناسه: ${it.entity_id} • ${esc(toPersianDate(it.created_at, true))}</div>
                 <ul class="spec-list">${Object.entries(changes).map(([k,v]) => `<li><span>${esc(k)}</span><span>${esc(v)}</span></li>`).join('')}</ul>
                 <div style="display:flex; gap:0.5rem; margin-top:0.6rem;">
                     <button class="btn btn-primary btn-sm" onclick="decidePending(${it.id},'approved')">تایید و اعمال</button>
@@ -237,7 +259,7 @@ async function loadPending() {
         + `<h2 class="section-title" style="margin-top:1.2rem;">⭐ نظرات در انتظار تایید</h2>`
         + (reviews.map(r => `
             <div class="card" style="padding:1rem; margin-bottom:0.8rem;">
-                <div style="font-size:0.85rem;">نظر <b>${esc(r.reviewer_name)}</b> دربارهٔ <b>${esc(r.company_name)}</b></div>
+                <div style="font-size:0.85rem;">نظر <b>${esc(r.reviewer_name)}</b> دربارهٔ <b>${esc(r.company_name)}</b> • ${esc(toPersianDate(r.created_at))}</div>
                 <div style="margin:0.4rem 0; color:#b8860b;">${'⭐'.repeat(r.rating)}</div>
                 ${r.comment ? `<p style="font-size:0.85rem;">${esc(r.comment)}</p>` : ''}
                 <div style="display:flex; gap:0.5rem; margin-top:0.6rem;">
@@ -264,12 +286,42 @@ async function loadAdminChat() {
     const el = document.getElementById('admin-chat');
     el.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
     try {
-        const [convos, reports] = await Promise.all([
+        const [convos, reports, settings] = await Promise.all([
             apiGet('/api/admin/conversations'),
             apiGet('/api/admin/message-reports'),
+            apiGet('/api/admin/settings'),
         ]);
+        const pending = convos.filter(c => !c.approved);
         el.innerHTML = `
-            <h2 class="section-title">🚩 گزارش‌های تخلف</h2>
+            <h2 class="section-title">⚙️ تنظیمات چت پلتفرم</h2>
+            <div class="card" style="padding:1rem; margin-bottom:1.2rem;">
+                <label style="display:flex; justify-content:space-between; align-items:center; padding:0.5rem 0; border-bottom:1px solid var(--border);">
+                    <span>چت داخلی پلتفرم برای همه فعال باشد</span>
+                    <input type="checkbox" id="chatEnabledToggle" ${settings.chat_enabled ? 'checked' : ''} onchange="updateChatSettings()" style="width:20px; height:20px;">
+                </label>
+                <label style="display:flex; justify-content:space-between; align-items:center; padding:0.5rem 0;">
+                    <span>گفتگوهای جدید خودکار تایید شوند (بدون نیاز به تایید من)</span>
+                    <input type="checkbox" id="chatAutoApproveToggle" ${settings.chat_auto_approve ? 'checked' : ''} onchange="updateChatSettings()" style="width:20px; height:20px;">
+                </label>
+                <p style="font-size:0.75rem; color:var(--text-light); margin-top:0.6rem;">
+                    اگر تایید خودکار خاموش باشد، گفتگوی جدید فقط برای شروع‌کننده‌اش نمایش داده می‌شود تا وقتی از پایین همین صفحه تایید کنید؛ بعد از آن طرف مقابل هم می‌تواند آن را ببیند.
+                </p>
+            </div>
+
+            ${pending.length ? `
+            <h2 class="section-title">⏳ گفتگوهای در انتظار تایید</h2>
+            ${pending.map(c => `
+                <div class="card" style="padding:1rem; margin-bottom:0.8rem; border-right:3px solid var(--gold);">
+                    <div style="font-size:0.85rem;">بین <b>${esc(c.company_a_name)}</b> و <b>${esc(c.company_b_name)}</b></div>
+                    <div style="display:flex; gap:0.5rem; margin-top:0.6rem;">
+                        <button class="btn btn-outline btn-sm" onclick="viewAdminThread(${c.id})">مشاهدهٔ گفتگو</button>
+                        <button class="btn btn-primary btn-sm" onclick="approveAdminConversation(${c.id})">تایید گفتگو</button>
+                    </div>
+                </div>
+            `).join('')}
+            ` : ''}
+
+            <h2 class="section-title" style="margin-top:1.2rem;">🚩 گزارش‌های تخلف</h2>
             ${reports.map(r => `
                 <div class="card" style="padding:1rem; margin-bottom:0.8rem; border-right:3px solid #dc2626;">
                     <div style="font-size:0.85rem; color:var(--text-light);">گزارش‌دهنده: ${esc(r.reported_by_name)}</div>
@@ -290,9 +342,10 @@ async function loadAdminChat() {
                     <td>${esc(c.company_a_name)}</td>
                     <td>${esc(c.company_b_name)}</td>
                     <td>${c.message_count}${c.pending_reports > 0 ? ` <span class="tab-badge" style="display:inline-block;">${c.pending_reports}</span>` : ''}</td>
-                    <td>${c.status === 'closed_by_admin' ? 'بسته‌شده' : 'باز'}</td>
+                    <td>${!c.approved ? 'در انتظار تایید' : (c.status === 'closed_by_admin' ? 'بسته‌شده' : 'باز')}</td>
                     <td style="white-space:nowrap;">
                         <button class="btn btn-sm btn-outline" onclick="viewAdminThread(${c.id})">مشاهده</button>
+                        ${!c.approved ? `<button class="btn btn-sm btn-primary" onclick="approveAdminConversation(${c.id})">تایید</button>` : ''}
                         ${c.status === 'closed_by_admin'
                             ? `<button class="btn btn-sm btn-primary" onclick="reopenAdminConversation(${c.id})">بازگشایی</button>`
                             : `<button class="btn btn-sm btn-danger" onclick="closeAdminConversation(${c.id})">بستن</button>`}
@@ -303,6 +356,19 @@ async function loadAdminChat() {
         `;
     } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
 }
+async function updateChatSettings() {
+    try {
+        await apiSend('PUT', '/api/admin/settings', {
+            chat_enabled: document.getElementById('chatEnabledToggle').checked ? 1 : 0,
+            chat_auto_approve: document.getElementById('chatAutoApproveToggle').checked ? 1 : 0,
+        });
+        showToast('تنظیمات ذخیره شد', 'success');
+    } catch (e) { showToast(e.message, 'error'); }
+}
+async function approveAdminConversation(id) {
+    try { await apiSend('POST', `/api/admin/conversations/${id}/approve`, {}); showToast('گفتگو تایید شد', 'success'); loadAdminChat(); loadNotifications(); }
+    catch (e) { showToast(e.message, 'error'); }
+}
 async function viewAdminThread(conversationId) {
     const box = document.getElementById('adminThreadView');
     box.style.display = 'block';
@@ -312,7 +378,7 @@ async function viewAdminThread(conversationId) {
         const msgs = await apiGet(`/api/admin/conversations/${conversationId}/messages`);
         box.innerHTML = `<h3 class="section-title" style="font-size:1rem;">متن گفتگو</h3>
             <div class="card" style="padding:1rem; max-height:360px; overflow-y:auto;">
-                ${msgs.map(m => `<div style="margin-bottom:0.6rem;"><b>${esc(m.sender_name)}</b> <span style="color:var(--text-light); font-size:0.72rem;">${esc((m.created_at||'').slice(0,16))}</span><div>${esc(m.body)}</div></div>`).join('') || '<div class="empty-state">پیامی نیست</div>'}
+                ${msgs.map(m => `<div style="margin-bottom:0.6rem;"><b>${esc(m.sender_name)}</b> <span style="color:var(--text-light); font-size:0.72rem;">${esc(toPersianDate(m.created_at, true))}</span><div>${esc(m.body)}</div></div>`).join('') || '<div class="empty-state">پیامی نیست</div>'}
             </div>`;
     } catch (e) { box.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
 }
@@ -350,18 +416,19 @@ function renderCompaniesTable() {
     el.innerHTML = `<h2 class="section-title">🏭 واحدهای تولیدی</h2>
         <input type="text" id="companiesAdminSearch" placeholder="جستجوی نام یا شماره..." value="${esc(q)}" oninput="renderCompaniesTable()" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border); margin-bottom:0.8rem;">
         <div class="table-wrap"><table class="admin-table">
-            <tr><th>نام</th><th>نقش</th><th>شهرستان</th><th>وضعیت</th><th>پرزنت</th><th>عملیات</th></tr>
+            <tr><th>نام</th><th>نقش</th><th>شهرستان</th><th>تاریخ ثبت‌نام</th><th>وضعیت</th><th>پرزنت</th><th>عملیات</th></tr>
             ${items.map(c => `<tr>
                 <td>${esc(c.name)}<br><small style="color:var(--text-light)">${esc(c.phone)}</small></td>
                 <td>${esc(ROLE_LABELS[c.role] || c.role || '-')}</td>
                 <td>${esc(c.county||'-')}</td>
+                <td>${esc(toPersianDate(c.created_at))}</td>
                 <td>${c.verified ? '✔ تأیید شده' : 'در انتظار'} / ${c.active ? 'فعال' : 'غیرفعال'}</td>
                 <td>${c.presentation_status === 'pending' ? `<button class="btn btn-sm btn-outline" onclick="decidePresentation(${c.id},'approved')">تایید پرزنت</button> <button class="btn btn-sm btn-danger" onclick="decidePresentation(${c.id},'rejected')">رد</button>` : (c.presentation_status||'-')}</td>
                 <td style="white-space:nowrap;">
                     <button class="btn btn-sm ${c.verified?'btn-outline':'btn-primary'}" onclick="toggleCompany(${c.id},'verified',${c.verified?0:1})">${c.verified?'لغو تأیید':'تأیید'}</button>
                     <button class="btn btn-sm ${c.active?'btn-danger':'btn-outline'}" onclick="toggleCompany(${c.id},'active',${c.active?0:1})">${c.active?'غیرفعال':'فعال'}</button>
                 </td>
-            </tr>`).join('') || '<tr><td colspan="6">نتیجه‌ای یافت نشد</td></tr>'}
+            </tr>`).join('') || '<tr><td colspan="7">نتیجه‌ای یافت نشد</td></tr>'}
         </table></div>`;
     document.getElementById('companiesAdminSearch').focus();
     document.getElementById('companiesAdminSearch').setSelectionRange(q.length, q.length);
@@ -394,16 +461,17 @@ function renderOffersTable() {
     el.innerHTML = `<h2 class="section-title">📦 عرضه‌ها</h2>
         <input type="text" id="offersAdminSearch" placeholder="جستجوی عنوان یا شرکت..." value="${esc(q)}" oninput="renderOffersTable()" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border); margin-bottom:0.8rem;">
         <div class="table-wrap"><table class="admin-table">
-            <tr><th>عنوان</th><th>شرکت</th><th>قیمت</th><th>وضعیت</th><th>عملیات</th></tr>
+            <tr><th>عنوان</th><th>شرکت</th><th>قیمت</th><th>تاریخ</th><th>وضعیت</th><th>عملیات</th></tr>
             ${items.map(o => `<tr>
                 <td>${esc(o.title)}</td><td>${esc(o.company_name)}</td><td>${esc(o.price||'-')}</td>
+                <td>${esc(toPersianDate(o.created_at))}</td>
                 <td>${o.verified?'✔ تأیید':'در انتظار'} / ${o.active?'فعال':'غیرفعال'} ${o.featured?'/ ⭐ ستاره‌خواسته':''} ${o.featured_approved?'/ ⭐تاییدشده':''}</td>
                 <td style="white-space:nowrap;">
                     <button class="btn btn-sm ${o.verified?'btn-outline':'btn-primary'}" onclick="toggleOffer(${o.id},'verified',${o.verified?0:1})">${o.verified?'لغو تأیید':'تأیید'}</button>
                     <button class="btn btn-sm ${o.featured_approved?'btn-outline':'btn-gold'}" onclick="toggleOffer(${o.id},'featured_approved',${o.featured_approved?0:1})">${o.featured_approved?'حذف ستاره':'ستاره‌دار کن'}</button>
                     <button class="btn btn-sm btn-danger" onclick="deleteOffer(${o.id})">حذف</button>
                 </td>
-            </tr>`).join('') || '<tr><td colspan="5">نتیجه‌ای یافت نشد</td></tr>'}
+            </tr>`).join('') || '<tr><td colspan="6">نتیجه‌ای یافت نشد</td></tr>'}
         </table></div>`;
     const inp = document.getElementById('offersAdminSearch');
     inp.focus(); inp.setSelectionRange(q.length, q.length);
@@ -441,7 +509,7 @@ function renderRequestsList() {
                     <b>${esc(r.product)}</b>
                     <button class="btn btn-sm btn-danger" onclick="deleteRequest(${r.id})">حذف</button>
                 </div>
-                <div style="font-size:0.82rem; color:var(--text-light);">${esc(r.company)} • ${esc(r.quantity)} ${esc(r.unit||'')}</div>
+                <div style="font-size:0.82rem; color:var(--text-light);">${esc(r.company)} • ${esc(r.quantity)} ${esc(r.unit||'')} • ${esc(toPersianDate(r.created_at))}</div>
                 ${r.responses && r.responses.length
                     ? `<div style="margin-top:0.5rem; font-size:0.82rem;">✅ پاسخ‌ها: ${r.responses.map(rr => `${esc(rr.company_name)} (<a href="tel:${esc(rr.phone)}">${esc(rr.phone)}</a>)`).join('، ')}</div>`
                     : `<div style="margin-top:0.4rem; font-size:0.8rem; color:var(--text-light);">هنوز پاسخی نیامده</div>`}
@@ -483,7 +551,7 @@ async function loadMessages() {
                     <b>${esc(m.subject || 'بدون موضوع')}</b>
                     <span class="badge ${m.status === 'خوانده‌نشده' ? 'badge-urgent' : 'badge-status'}">${esc(m.status)}</span>
                 </div>
-                <div style="font-size:0.82rem; color:var(--text-light); margin:0.3rem 0;">${esc(m.name||'ناشناس')} ${m.phone ? '— ' + esc(m.phone) : ''}</div>
+                <div style="font-size:0.82rem; color:var(--text-light); margin:0.3rem 0;">${esc(m.name||'ناشناس')} ${m.phone ? '— ' + esc(m.phone) : ''} • ${esc(toPersianDate(m.created_at, true))}</div>
                 <p style="font-size:0.88rem;">${esc(m.message)}</p>
                 <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
                     <button class="btn btn-sm btn-outline" onclick="setMessageStatus(${m.id},'خوانده‌شد')">علامت خوانده‌شد</button>
