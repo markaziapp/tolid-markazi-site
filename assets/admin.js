@@ -427,6 +427,7 @@ function renderCompaniesTable() {
                 <td style="white-space:nowrap;">
                     <button class="btn btn-sm ${c.verified?'btn-outline':'btn-primary'}" onclick="toggleCompany(${c.id},'verified',${c.verified?0:1})">${c.verified?'لغو تأیید':'تأیید'}</button>
                     <button class="btn btn-sm ${c.active?'btn-danger':'btn-outline'}" onclick="toggleCompany(${c.id},'active',${c.active?0:1})">${c.active?'غیرفعال':'فعال'}</button>
+                    <button class="btn btn-sm btn-outline" onclick="resetCompanyPassword(${c.id})">تنظیم رمز جدید</button>
                 </td>
             </tr>`).join('') || '<tr><td colspan="7">نتیجه‌ای یافت نشد</td></tr>'}
         </table></div>`;
@@ -436,6 +437,14 @@ function renderCompaniesTable() {
 async function toggleCompany(id, field, value) {
     try { await apiSend('PUT', `/api/admin/companies/${id}`, { [field]: value }); loadCompanies(); loadNotifications(); }
     catch (e) { showToast(e.message, 'error'); }
+}
+async function resetCompanyPassword(id) {
+    const pw = prompt('رمز جدید برای این کاربر را وارد کنید (حداقل ۴ کاراکتر):');
+    if (!pw) return;
+    try {
+        await apiSend('POST', `/api/admin/companies/${id}/reset-password`, { newPassword: pw });
+        showToast('رمز عبور تغییر کرد؛ آن را به کاربر اطلاع دهید', 'success');
+    } catch (e) { showToast(e.message, 'error'); }
 }
 async function decidePresentation(id, status) {
     try { await apiSend('PUT', `/api/admin/companies/${id}`, { presentation_status: status }); showToast('ثبت شد', 'success'); loadCompanies(); loadNotifications(); }

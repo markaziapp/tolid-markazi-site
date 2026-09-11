@@ -146,7 +146,39 @@ function switchTab(tab) {
     if (tab === 'requests') loadRequests('requestsList');
     if (tab === 'services') loadServices('servicesList');
     if (tab === 'companies') loadCompanies('companiesList');
+    if (tab === 'map') loadFactoryMap();
     if (tab === 'tools') loadFiles();
+}
+
+let factoryMapInstance = null, factoryMarkersLayer = null;
+async function loadFactoryMap() {
+    if (!factoryMapInstance) {
+        factoryMapInstance = L.map('factoryMap').setView([34.35, 49.9], 9);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors', maxZoom: 19,
+        }).addTo(factoryMapInstance);
+        factoryMarkersLayer = L.layerGroup().addTo(factoryMapInstance);
+    }
+    setTimeout(() => factoryMapInstance.invalidateSize(), 50);
+    factoryMarkersLayer.clearLayers();
+    try {
+        const companies = await apiGet('/api/companies/map');
+        companies.forEach(c => {
+            const icon = L.divIcon({
+                className: 'factory-pin',
+                html: `<div style="font-size:1.8rem; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));">${c.verified ? '🏭' : '🏗️'}</div>`,
+                iconSize: [32, 32], iconAnchor: [16, 28],
+            });
+            L.marker([c.latitude, c.longitude], { icon }).addTo(factoryMarkersLayer)
+                .bindPopup(`
+                    <div style="font-family:'Vazirmatn',Tahoma,sans-serif; text-align:right; min-width:160px;">
+                        <b>${esc(c.name)}</b>${c.verified ? ' ✔' : ''}<br>
+                        <span style="color:#64748b; font-size:0.8rem;">${esc(c.county || '')} ${c.category ? '• ' + esc(c.category) : ''}</span><br>
+                        <a href="company-profile.html?id=${c.id}" style="color:#0f3460; font-size:0.82rem;">مشاهدهٔ پروفایل ←</a>
+                    </div>
+                `);
+        });
+    } catch (e) { /* اگر نشد، نقشهٔ خالی نمایش داده می‌شود */ }
 }
 
 function trackView(path) {

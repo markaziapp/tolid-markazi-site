@@ -360,6 +360,24 @@ async function doLogin() {
 
 function logout() { clearToken(); location.reload(); }
 
+function toggleForgotBox() {
+    const box = document.getElementById('forgotBox');
+    box.style.display = box.style.display === 'block' ? 'none' : 'block';
+}
+async function submitForgotPassword() {
+    const phone = document.getElementById('forgotPhone').value.trim();
+    if (!phone) { showToast('شماره تماس را وارد کنید', 'error'); return; }
+    try {
+        await apiSend('POST', '/api/contact', {
+            phone, subject: '🔑 درخواست بازیابی رمز عبور',
+            message: `کاربر با شماره ${phone} رمز عبورش را فراموش کرده و درخواست بازیابی داده است.`,
+        });
+        showToast('درخواست شما ثبت شد؛ به‌زودی با شما تماس گرفته می‌شود', 'success');
+        document.getElementById('forgotBox').style.display = 'none';
+        document.getElementById('forgotPhone').value = '';
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
 const ROLE_LABELS = { producer: 'تولیدکننده / واحد صنعتی', service: 'تأمین‌کننده خدمات', buyer: 'خریدار / متقاضی خرید', other: 'سایر' };
 
 let chartInstance;
@@ -665,6 +683,18 @@ async function submitPresentation() {
         }, true);
         showToast('برای تایید مدیر ارسال شد', 'success');
         loadDashboard();
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function submitChangePassword() {
+    const currentPassword = document.getElementById('curPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    if (!currentPassword || !newPassword) { showToast('هر دو رمز را وارد کنید', 'error'); return; }
+    try {
+        await apiSend('POST', '/api/company/change-password', { currentPassword, newPassword }, true);
+        showToast('رمز عبور با موفقیت تغییر کرد', 'success');
+        document.getElementById('curPassword').value = '';
+        document.getElementById('newPassword').value = '';
     } catch (e) { showToast(e.message, 'error'); }
 }
 
