@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>پروفایل شرکت | همتا صنعت</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f3460">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css">
+<link rel="stylesheet" href="assets/styles.css">
+<script src="assets/config.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+    <div class="container">
+        <div class="brand">🏭 همتاصنعت <span>مرکزی</span></div>
+        <span id="authArea"></span>
+    </div>
+</header>
+
+<main class="narrow" style="padding:1.2rem 1rem 3rem;">
+
+    <div id="profileLoading" class="loading">در حال بارگذاری پروفایل...</div>
+
+    <div id="profileBox" style="display:none;">
+        <div class="card" style="padding:1.2rem; text-align:center;">
+            <h2 id="pName" style="color:var(--primary); margin-bottom:0.3rem;"></h2>
+            <div id="pCounty" style="color:var(--text-light); font-size:0.85rem;"></div>
+            <div id="pVerified" style="margin-top:0.5rem;"></div>
+            <div id="pRating" style="margin-top:0.5rem; color:#b8860b; font-size:0.9rem;"></div>
+            <div id="pBadges" style="margin-top:0.5rem;"></div>
+            <div style="margin-top:1rem; display:flex; gap:0.5rem; justify-content:center;">
+                <button class="btn btn-primary btn-sm" id="pChatBtn">💬 گفتگو با این شرکت</button>
+                <button class="btn btn-outline btn-sm" onclick="toggleQr()">🔳 کارت ویزیت QR</button>
+            </div>
+            <div id="qrBox" style="display:none; margin-top:1rem;">
+                <img id="qrImg" alt="کد QR پروفایل" style="width:220px; height:220px; border-radius:8px; border:1px solid var(--border);">
+                <div style="font-size:0.75rem; color:var(--text-light); margin-top:0.4rem;">این کد QR را برای مشتریان چاپ یا اسکن کنید</div>
+            </div>
+        </div>
+
+        <div class="card" style="padding:1rem; margin-top:1rem;">
+            <h3 class="section-title" style="font-size:1rem;">مشخصات</h3>
+            <div id="pDetails" style="font-size:0.88rem; line-height:2;"></div>
+        </div>
+
+        <div class="card" style="padding:1rem; margin-top:1rem;">
+            <h3 class="section-title" style="font-size:1rem;">ثبت امتیاز و نظر</h3>
+            <div id="reviewFormBox">
+                <div class="form-group">
+                    <label>امتیاز شما</label>
+                    <select id="reviewRating">
+                        <option value="5">⭐⭐⭐⭐⭐ عالی</option>
+                        <option value="4">⭐⭐⭐⭐ خوب</option>
+                        <option value="3">⭐⭐⭐ متوسط</option>
+                        <option value="2">⭐⭐ ضعیف</option>
+                        <option value="1">⭐ بسیار ضعیف</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>نظر شما (اختیاری)</label>
+                    <textarea id="reviewComment" rows="2" placeholder="تجربهٔ همکاری خود را بنویسید..."></textarea>
+                </div>
+                <button class="btn btn-gold" style="width:100%;" onclick="submitReview()">ثبت نظر</button>
+                <p style="font-size:0.72rem; color:var(--text-light); margin-top:0.5rem;">نظر شما بعد از بررسی مدیریت نمایش داده می‌شود.</p>
+            </div>
+        </div>
+
+        <div class="card" style="padding:1rem; margin-top:1rem;">
+            <h3 class="section-title" style="font-size:1rem;">نظرات کاربران</h3>
+            <div id="reviewsList"><div class="empty-state">هنوز نظری ثبت نشده</div></div>
+        </div>
+    </div>
+
+    <div id="profileError" style="display:none;" class="empty-state">پروفایل یافت نشد</div>
+</main>
+
+<div class="toast" id="toast"></div>
+<script src="assets/company-profile.js"></script>
+</body>
+</html>
