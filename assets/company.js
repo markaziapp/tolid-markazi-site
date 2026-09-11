@@ -378,6 +378,11 @@ async function loadDashboard() {
         renderMyRfqsSent(data.myRfqsSent || []);
         renderRfqsReceived(data.rfqsReceived || []);
         checkNewActivity(data);
+        loadNotifications();
+        loadConversations().then(() => {
+            const m = location.hash.match(/^#chat-(\d+)/);
+            if (m) openChatThread(parseInt(m[1]));
+        });
 
         const labels = (data.monthlyViews || []).map(m => m.month).reverse();
         const values = (data.monthlyViews || []).map(m => m.c).reverse();
@@ -621,6 +626,120 @@ async function submitPresentation() {
         showToast('برای تایید مدیر ارسال شد', 'success');
         loadDashboard();
     } catch (e) { showToast(e.message, 'error'); }
+}
+
+// ------------------------------------------------------------------
+// اعلان‌ها (زنگوله)
+// ------------------------------------------------------------------
+let notifPollInterval = null;
+
+async function loadNotifications() {
+    try {
+        const data = await apiGet('/api/company/notifications', true);
+        const badge = document.getElementById('notifBadge');
+        if (data.unread > 0) { badge.style.display = 'flex'; badge.textContent = data.unread > 9 ? '9+' : data.unread; }
+        else { badge.style.display = 'none'; }
+        const list = document.getElementById('notifList');
+        if (!data.items.length) { list.innerHTML = '<div class="empty-state" style="padding:1rem;">اعلانی ندارید</div>'; return; }
+        list.innerHTML = data.items.map(n => `
+            <div class="notif-item ${n.is_read ? '' : 'unread'}" onclick="openNotification(${n.id}, '${escAttr(n.link || '')}')">
+                <div class="notif-title">${esc(n.title)}</div>
+                <div>${esc(n.body || '')}</div>
+                <div class="notif-time">${esc((n.created_at || '').slice(0, 16))}</div>
+            </div>
+        `).join('');
+    } catch (e) { /* اگر نشد، بی‌سروصدا رد می‌شود */ }
+    if (!notifPollInterval) notifPollInterval = setInterval(loadNotifications, 20000);
+}
+
+function toggleNotifDropdown() {
+    const dd = document.getElementById('notifDropdown');
+    const open = dd.style.display === 'block';
+    dd.style.display = open ? 'none' : 'block';
+    if (!open) loadNotifications();
+}
+
+async function markAllNotifsRead() {
+    try { await apiSend('POST', '/api/company/notifications/read-all', {}, true); loadNotifications(); } catch (e) {}
+}
+
+async function openNotification(id, link) {
+    try { await apiSend('POST', `/api/company/notifications/${id}/read`, {}, true); } catch (e) {}
+    loadNotifications();
+    document.getElementById('notifDropdown').style.display = 'none';
+    const m = (link || '').match(/^#chat-(\d+)/);
+    if (m) { openChatThread(parseInt(m[1])); document.getElementById('chatCard').scrollIntoView({ behavior: 'smooth' }); }
+}
+
+// ------------------------------------------------------------------
+// چت داخلی
+// ------------------------------------------------------------------
+let activeConversationId = null, chatPollInterval = null, myCompanyId = null;
+
+async function loadConversations() {
+    try {
+        const list = await apiGet('/api/chat/conversations', true);
+        myCompanyId = currentDashData?.company?.id;
+        const el = document.getElementById('chatConversationsList');
+        if (!list.length) { el.innerHTML = '<div class="empty-state">هنوز گفتگویی ندارید</div>'; return; }
+        el.innerHTML = list.map(c => `
+            <div class="chat-list-item" onclick="openChatThread(${c.id})">
+                <div>
+                    <div class="chat-list-name">${esc(c.other_name)}</div>
+                    <div class="chat-list-preview">${esc(c.last_message || 'گفتگو را شروع کنید')}</div>
+                </div>
+                ${c.unread_count > 0 ? `<span class="chat-unread-badge">${c.unread_count}</span>` : ''}
+            </div>
+        `).join('');
+    } catch (e) { /* اگر نشد، بی‌سروصدا رد می‌شود */ }
+}
+
+async function openChatThread(id) {
+    activeConversationId = id;
+    document.getElementById('chatListView').style.display = 'none';
+    document.getElementById('chatThreadView').style.display = 'block';
+    await loadChatMessages();
+    if (chatPollInterval) clearInterval(chatPollInterval);
+    chatPollInterval = setInterval(loadChatMessages, 5000);
+}
+
+function closeChatThread() {
+    activeConversationId = null;
+    if (chatPollInterval) { clearInterval(chatPollInterval); chatPollInterval = null; }
+    document.getElementById('chatThreadView').style.display = 'none';
+    document.getElementById('chatListView').style.display = 'block';
+    history.replaceState(null, '', location.pathname);
+    loadConversations();
+    loadNotifications();
+}
+
+async function loadChatMessages() {
+    if (!activeConversationId) return;
+    try {
+        const msgs = await apiGet(`/api/chat/conversations/${activeConversationId}/messages`, true);
+        const box = document.getElementById('chatMessages');
+        const wasAtBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 20;
+        box.innerHTML = msgs.map(m => `
+            <div class="chat-bubble ${m.sender_company_id === myCompanyId ? 'mine' : 'theirs'}">
+                ${esc(m.body)}
+                <span class="chat-bubble-time">${esc((m.created_at || '').slice(11, 16))}</span>
+            </div>
+        `).join('');
+        if (wasAtBottom || msgs.length <= 1) box.scrollTop = box.scrollHeight;
+        const convo = (await apiGet('/api/chat/conversations', true)).find(c => c.id === activeConversationId);
+        document.getElementById('chatThreadTitle').textContent = convo?.other_name || 'گفتگو';
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function sendChatMessage() {
+    const input = document.getElementById('chatInput');
+    const body = input.value.trim();
+    if (!body || !activeConversationId) return;
+    input.value = '';
+    try {
+        await apiSend('POST', `/api/chat/conversations/${activeConversationId}/messages`, { body }, true);
+        loadChatMessages();
+    } catch (e) { showToast(e.message, 'error'); input.value = body; }
 }
 
 window.addEventListener('DOMContentLoaded', () => {

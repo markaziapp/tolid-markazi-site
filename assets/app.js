@@ -20,6 +20,17 @@ function requireLogin(actionLabel) {
     return false;
 }
 
+// شروع گفتگوی مستقیم با یک شرکت از روی کارت پروفایل عمومی
+async function startChatWith(companyId) {
+    if (!requireLogin('شروع گفتگو')) return;
+    try {
+        const data = await apiPost('/api/chat/start', { companyId });
+        location.href = `company.html#chat-${data.conversationId}`;
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
 async function renderAuthArea() {
     const el = document.getElementById('authArea');
     if (!el) return;
@@ -219,6 +230,8 @@ function offerCard(offer) {
 }
 
 function companyCard(c) {
+    const stars = c.rating_count > 0 ? `⭐ ${c.rating_avg.toFixed(1)} (${c.rating_count} نظر)` : '';
+    const badges = (c.badges || []).map(b => `<span class="badge badge-trust">${esc(b)}</span>`).join(' ');
     return `
     <div class="card">
         <div class="card-header">
@@ -227,6 +240,11 @@ function companyCard(c) {
         <div class="card-body">
             <div style="font-size:0.85rem; color:var(--text-light);">${esc(c.products||'')}</div>
             ${c.capacity ? `<div style="font-size:0.8rem; margin-top:0.4rem;">ظرفیت تولید: ${esc(c.capacity)}</div>` : ''}
+            ${stars ? `<div style="font-size:0.8rem; margin-top:0.4rem; color:#b8860b;">${stars}</div>` : ''}
+            ${badges ? `<div style="margin-top:0.5rem;">${badges}</div>` : ''}
+        </div>
+        <div class="card-footer">
+            <button class="btn btn-primary btn-sm" onclick="startChatWith(${c.id})">💬 گفتگو</button>
         </div>
     </div>`;
 }
@@ -583,6 +601,15 @@ function showRequestDetails(id) {
 // ------------------------------------------------------------------
 // شروع
 // ------------------------------------------------------------------
+async function loadDailyTicker() {
+    const el = document.getElementById('dailyTicker');
+    if (!el) return;
+    try {
+        const s = await apiGet('/api/stats/ticker');
+        el.textContent = `📊 امروز ${s.requestsToday} درخواست جدید ثبت شد • ${s.companiesTotal} واحد تولیدی عضو پلتفرم`;
+    } catch { /* اگر نشد، بی‌سروصدا نادیده گرفته می‌شود */ }
+}
+
 window.addEventListener('DOMContentLoaded', () => {
-    renderAuthArea(); loadLookups(); loadHome(); trackView('/home');
+    renderAuthArea(); loadLookups(); loadHome(); trackView('/home'); loadDailyTicker();
 });
