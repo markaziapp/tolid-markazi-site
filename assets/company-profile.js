@@ -107,6 +107,7 @@ function renderProfile(c) {
         ${c.category ? `<div>دسته‌بندی: ${esc(c.category)}</div>` : ''}
     `;
     document.getElementById('pChatBtn').onclick = () => startChatWith(c.id);
+    document.getElementById('pCatalogBtn').href = `catalog.html?id=${c.id}`;
     document.title = `${c.name} | همتا صنعت`;
     renderAuthArea();
 }

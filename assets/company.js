@@ -388,6 +388,9 @@ async function loadDashboard() {
         currentDashData = data;
         showScreen('dashboardMain');
         document.getElementById('dashCompanyName').textContent = data.company.name + ' — ' + (ROLE_LABELS[data.company.role] || '');
+        const catalogBtn = document.getElementById('catalogBtn');
+        catalogBtn.href = `catalog.html?id=${data.company.id}`;
+        catalogBtn.style.display = 'inline-flex';
         document.getElementById('verifyNotice').innerHTML = data.company.verified
             ? '<div class="badge badge-verified">✔ حساب شما تأیید شده است</div>'
             : '<div class="badge badge-urgent">در انتظار تأیید مدیر</div>';
