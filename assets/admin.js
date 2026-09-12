@@ -121,7 +121,7 @@ function switchAdminTab(tab) {
     const loaders = {
         overview: loadOverview, pending: loadPending, companies: loadCompanies, offers: loadOffers,
         requests: loadRequests, rfqs: loadRfqs, services: loadServices, ads: loadAds, messages: loadMessages,
-        files: loadFiles, lookups: loadLookups, chat: loadAdminChat,
+        files: loadFiles, lookups: loadLookups, chat: loadAdminChat, sms: loadAdminSms,
     };
     loaders[tab] && loaders[tab]();
 }
@@ -356,6 +356,104 @@ async function loadAdminChat() {
         `;
     } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
 }
+async function loadAdminSms() {
+    const el = document.getElementById('admin-sms');
+    el.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
+    try {
+        const [companies, counties, log] = await Promise.all([
+            apiGet('/api/admin/companies'), apiGet('/api/admin/counties'), apiGet('/api/admin/sms/log'),
+        ]);
+        window._smsCompanies = companies;
+        el.innerHTML = `
+            <h2 class="section-title">📨 ارسال پیامک از گوشی خودتان</h2>
+            <p style="font-size:0.78rem; color:var(--text-light); margin-bottom:0.8rem;">
+                چون هنوز حساب سرویس پیامکی وصل نیست، ارسال از طریق اپ پیامک خودِ گوشی‌تان انجام می‌شود:
+                گیرنده(ها) و متن را انتخاب کنید، بعد روی هرکدام که می‌خواهید بزنید تا اپ پیامک گوشی‌تان با شماره و متن آماده باز شود — فقط دکمهٔ ارسال را در همان‌جا بزنید.
+            </p>
+
+            <div class="card" style="padding:1rem; margin-bottom:1rem;">
+                <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.7rem;">
+                    <select id="smsCountyFilter" onchange="renderSmsRecipients()" style="padding:0.4rem; border-radius:8px; border:1px solid var(--border);">
+                        <option value="">همهٔ شهرستان‌ها</option>
+                        ${counties.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('')}
+                    </select>
+                    <select id="smsRoleFilter" onchange="renderSmsRecipients()" style="padding:0.4rem; border-radius:8px; border:1px solid var(--border);">
+                        <option value="">همهٔ نقش‌ها</option>
+                        <option value="producer">تولیدکننده</option>
+                        <option value="service">خدمات‌دهنده</option>
+                        <option value="buyer">خریدار</option>
+                        <option value="other">سایر</option>
+                    </select>
+                    <button class="btn btn-outline btn-sm" onclick="selectAllSmsRecipients(true)">انتخاب همه</button>
+                    <button class="btn btn-outline btn-sm" onclick="selectAllSmsRecipients(false)">پاک‌کردن انتخاب</button>
+                </div>
+                <div id="smsRecipientsList" style="max-height:220px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; padding:0.5rem;"></div>
+                <div style="font-size:0.78rem; color:var(--text-light); margin-top:0.5rem;"><span id="smsSelectedCount">0</span> نفر انتخاب شده</div>
+
+                <textarea id="smsMessage" rows="3" placeholder="متن پیامک..." oninput="renderSmsSendLinks()" style="width:100%; margin-top:0.8rem; padding:0.6rem; border-radius:8px; border:1px solid var(--border); font-family:inherit;"></textarea>
+                <button class="btn btn-gold" style="width:100%; margin-top:0.6rem;" onclick="renderSmsSendLinks()">آماده‌سازی پیامک‌ها</button>
+
+                <div id="smsSendLinks" style="margin-top:0.8rem;"></div>
+            </div>
+
+            <h2 class="section-title">تاریخچهٔ ارسال‌ها</h2>
+            <table class="admin-table">
+                <tr><th>گیرنده</th><th>متن</th><th>تاریخ</th></tr>
+                ${log.map(s => `<tr>
+                    <td>${esc(s.company_name || s.phone)}</td>
+                    <td>${esc((s.message || '').slice(0, 40))}</td>
+                    <td>${esc(toPersianDate(s.created_at, true))}</td>
+                </tr>`).join('') || '<tr><td colspan="3">هنوز پیامکی ارسال نشده</td></tr>'}
+            </table>
+        `;
+        renderSmsRecipients();
+    } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
+}
+
+function renderSmsRecipients() {
+    const county = document.getElementById('smsCountyFilter').value;
+    const role = document.getElementById('smsRoleFilter').value;
+    const list = (window._smsCompanies || []).filter(c =>
+        (!county || c.county === county) && (!role || c.role === role)
+    );
+    const box = document.getElementById('smsRecipientsList');
+    box.innerHTML = list.map(c => `
+        <label style="display:flex; align-items:center; gap:0.5rem; padding:0.3rem 0; font-size:0.85rem;">
+            <input type="checkbox" class="sms-recipient" value="${c.id}" onchange="updateSmsSelectedCount()">
+            ${esc(c.name)} <span style="color:var(--text-light); font-size:0.75rem;">(${esc(c.phone)} — ${esc(c.county || '-')})</span>
+        </label>
+    `).join('') || '<div class="empty-state">کسی با این فیلتر یافت نشد</div>';
+    updateSmsSelectedCount();
+}
+function selectAllSmsRecipients(state) {
+    document.querySelectorAll('.sms-recipient').forEach(cb => { cb.checked = state; });
+    updateSmsSelectedCount();
+}
+function updateSmsSelectedCount() {
+    document.getElementById('smsSelectedCount').textContent = document.querySelectorAll('.sms-recipient:checked').length;
+}
+
+function renderSmsSendLinks() {
+    const ids = [...document.querySelectorAll('.sms-recipient:checked')].map(cb => parseInt(cb.value));
+    const message = document.getElementById('smsMessage').value.trim();
+    const box = document.getElementById('smsSendLinks');
+    if (!ids.length) { showToast('حداقل یک گیرنده انتخاب کنید', 'error'); return; }
+    if (!message) { showToast('متن پیامک را بنویسید', 'error'); return; }
+    const recipients = (window._smsCompanies || []).filter(c => ids.includes(c.id));
+    box.innerHTML = `<div style="font-size:0.8rem; font-weight:700; margin-bottom:0.5rem;">روی هرکدام بزنید تا اپ پیامک گوشی‌تان باز شود:</div>` +
+        recipients.map(c => `
+            <a href="sms:${esc(c.phone)}?body=${encodeURIComponent(message)}"
+               onclick="logSmsSent(${c.id})"
+               class="btn btn-outline btn-sm" style="display:block; width:100%; text-align:right; margin-bottom:0.4rem;">
+               📤 ارسال به ${esc(c.name)} (${esc(c.phone)})
+            </a>
+        `).join('');
+}
+async function logSmsSent(companyId) {
+    const message = document.getElementById('smsMessage').value.trim();
+    try { await apiSend('POST', '/api/admin/sms/log', { companyId, message }); } catch (e) { /* ثبت تاریخچه اختیاری است */ }
+}
+
 async function updateChatSettings() {
     try {
         await apiSend('PUT', '/api/admin/settings', {
