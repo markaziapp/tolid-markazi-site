@@ -359,6 +359,15 @@
             </div>
         </div>
 
+        <h3 class="section-title" style="font-size:1.1rem;">🛟 پشتیبانی</h3>
+        <div class="card chat-card" style="margin-bottom:1rem;">
+            <div id="supportMessages" class="chat-messages" style="height:220px;"></div>
+            <div class="chat-input-row">
+                <input type="text" id="supportInput" placeholder="پیام خود را به پشتیبانی بنویسید..." onkeydown="if(event.key==='Enter'){sendSupportMessage();}">
+                <button onclick="sendSupportMessage()">ارسال</button>
+            </div>
+        </div>
+
         <h3 class="section-title" style="font-size:1.1rem;">ثبت آگهی محصول جدید</h3>
         <div class="card" style="padding:1rem;">
             <div class="form-group"><label>عنوان محصول *</label><input type="text" id="newOfferTitle"></div>
