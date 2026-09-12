@@ -73,6 +73,30 @@ async function startChatWith(companyId) {
     } catch (e) { showToast(e.message, 'error'); }
 }
 
+// اشتراک‌گذاری یک‌کلیکی: اول سعی می‌کند از منوی اشتراک خودِ گوشی استفاده کند
+async function shareContent(title, text, url) {
+    if (navigator.share) {
+        try { await navigator.share({ title, text, url }); return; } catch (e) { /* کاربر لغو کرد یا پشتیبانی نشد */ }
+    }
+    const encoded = encodeURIComponent(text + ' ' + url);
+    const box = document.createElement('div');
+    box.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:999; display:flex; align-items:center; justify-content:center;';
+    box.innerHTML = `
+        <div style="background:#fff; border-radius:14px; padding:1.2rem; text-align:center; max-width:280px;">
+            <div style="font-weight:700; margin-bottom:1rem;">اشتراک‌گذاری</div>
+            <a href="https://wa.me/?text=${encoded}" target="_blank" style="display:block; padding:0.6rem; background:#25D366; color:#fff; border-radius:8px; margin-bottom:0.6rem; font-weight:700;">واتس‌اپ</a>
+            <a href="https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}" target="_blank" style="display:block; padding:0.6rem; background:#229ED9; color:#fff; border-radius:8px; margin-bottom:0.6rem; font-weight:700;">تلگرام</a>
+            <button onclick="this.closest('div').parentElement.remove()" style="border:none; background:#f1f5f9; padding:0.5rem 1rem; border-radius:8px; font-family:inherit; cursor:pointer;">بستن</button>
+        </div>`;
+    document.body.appendChild(box);
+    box.onclick = (e) => { if (e.target === box) box.remove(); };
+}
+
+function shareProfile() {
+    if (!currentCompany) return;
+    shareContent(currentCompany.name, `پروفایل ${currentCompany.name} در همتا صنعت مرکزی`, location.href);
+}
+
 // ------------------------------------------------------------------
 const ROLE_LABELS = { producer: 'تولیدکننده', service: 'خدمات‌دهنده', buyer: 'خریدار', other: 'سایر' };
 const params = new URLSearchParams(location.search);
@@ -85,6 +109,7 @@ async function loadProfile() {
         currentCompany = await apiGet(`/api/companies/${companyId}`);
         renderProfile(currentCompany);
         loadReviews();
+        fetch(api('/api/track'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: `/company/${companyId}`, ref: document.referrer || '' }) }).catch(() => {});
     } catch (e) { showError(); }
 }
 

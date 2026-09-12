@@ -39,6 +39,32 @@ async function startChatWith(companyId) {
     }
 }
 
+// اشتراک‌گذاری یک‌کلیکی: اول منوی اشتراک خودِ گوشی، در نبود آن واتس‌اپ/تلگرام
+async function shareContent(title, text, url) {
+    if (navigator.share) {
+        try { await navigator.share({ title, text, url }); return; } catch (e) { /* کاربر لغو کرد یا پشتیبانی نشد */ }
+    }
+    const box = document.createElement('div');
+    box.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:999; display:flex; align-items:center; justify-content:center;';
+    box.innerHTML = `
+        <div style="background:#fff; border-radius:14px; padding:1.2rem; text-align:center; max-width:280px;">
+            <div style="font-weight:700; margin-bottom:1rem;">اشتراک‌گذاری</div>
+            <a href="https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}" target="_blank" style="display:block; padding:0.6rem; background:#25D366; color:#fff; border-radius:8px; margin-bottom:0.6rem; font-weight:700;">واتس‌اپ</a>
+            <a href="https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}" target="_blank" style="display:block; padding:0.6rem; background:#229ED9; color:#fff; border-radius:8px; margin-bottom:0.6rem; font-weight:700;">تلگرام</a>
+            <button onclick="this.closest('div').parentElement.remove()" style="border:none; background:#f1f5f9; padding:0.5rem 1rem; border-radius:8px; font-family:inherit; cursor:pointer;">بستن</button>
+        </div>`;
+    document.body.appendChild(box);
+    box.onclick = (e) => { if (e.target === box) box.remove(); };
+}
+function shareOffer(companyId, title, companyName) {
+    const url = `${location.origin}${location.pathname.replace('index.html', '')}company-profile.html?id=${companyId}`;
+    shareContent(title, `${title} — از ${companyName} در همتا صنعت مرکزی`, url);
+}
+function shareCompany(companyId, name) {
+    const url = `${location.origin}${location.pathname.replace('index.html', '')}company-profile.html?id=${companyId}`;
+    shareContent(name, `پروفایل ${name} در همتا صنعت مرکزی`, url);
+}
+
 async function renderAuthArea() {
     const el = document.getElementById('authArea');
     if (!el) return;
@@ -267,6 +293,7 @@ function offerCard(offer) {
         <div class="card-footer">
             <button class="btn btn-outline btn-sm" onclick="showOfferDetails(${offer.id})">جزئیات</button>
             ${isMine ? '' : `<button class="btn btn-primary btn-sm" onclick="openRfq(${offer.id})">درخواست استعلام</button>`}
+            <button class="btn btn-outline btn-sm" onclick='shareOffer(${offer.company_id}, ${JSON.stringify(offer.title)}, ${JSON.stringify(offer.company_name)})' title="اشتراک‌گذاری">🔗</button>
         </div>
     </div>`;
 }
@@ -288,6 +315,7 @@ function companyCard(c) {
         <div class="card-footer">
             <button class="btn btn-primary btn-sm" onclick="startChatWith(${c.id})">💬 گفتگو</button>
             <a class="btn btn-outline btn-sm" href="company-profile.html?id=${c.id}">مشاهده پروفایل</a>
+            <button class="btn btn-outline btn-sm" onclick="shareCompany(${c.id}, ${JSON.stringify(c.name)})" title="اشتراک‌گذاری">🔗</button>
         </div>
     </div>`;
 }

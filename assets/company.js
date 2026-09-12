@@ -391,6 +391,7 @@ async function loadDashboard() {
         const catalogBtn = document.getElementById('catalogBtn');
         catalogBtn.href = `catalog.html?id=${data.company.id}`;
         catalogBtn.style.display = 'inline-flex';
+        loadWeeklyDigest();
         document.getElementById('verifyNotice').innerHTML = data.company.verified
             ? '<div class="badge badge-verified">✔ حساب شما تأیید شده است</div>'
             : '<div class="badge badge-urgent">در انتظار تأیید مدیر</div>';
@@ -687,6 +688,24 @@ async function submitPresentation() {
         showToast('برای تایید مدیر ارسال شد', 'success');
         loadDashboard();
     } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function loadWeeklyDigest() {
+    try {
+        const d = await apiGet('/api/company/weekly-digest', true);
+        const total = d.views + d.newMessages + d.newRfqs + d.newMatches;
+        const card = document.getElementById('weeklyDigestCard');
+        if (!total) { card.style.display = 'none'; return; }
+        card.style.display = 'block';
+        card.innerHTML = `
+            <div class="wd-title">📊 خلاصهٔ عملکرد این هفته</div>
+            <div class="wd-stats">
+                <div class="wd-stat"><div class="num">${d.views}</div><div class="lbl">بازدید پروفایل</div></div>
+                <div class="wd-stat"><div class="num">${d.newMessages}</div><div class="lbl">پیام جدید</div></div>
+                <div class="wd-stat"><div class="num">${d.newRfqs}</div><div class="lbl">استعلام جدید</div></div>
+                <div class="wd-stat"><div class="num">${d.newMatches}</div><div class="lbl">تطبیق هوشمند</div></div>
+            </div>`;
+    } catch (e) { /* اگر نشد، این کارت را نمایش نده */ }
 }
 
 async function submitChangePassword() {
