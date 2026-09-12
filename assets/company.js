@@ -392,6 +392,10 @@ async function loadDashboard() {
         catalogBtn.href = `catalog.html?id=${data.company.id}`;
         catalogBtn.style.display = 'inline-flex';
         loadWeeklyDigest();
+        loadSupportThread();
+        if (location.hash === '#support') {
+            setTimeout(() => document.getElementById('supportMessages')?.scrollIntoView({ behavior: 'smooth' }), 300);
+        }
         document.getElementById('verifyNotice').innerHTML = data.company.verified
             ? '<div class="badge badge-verified">✔ حساب شما تأیید شده است</div>'
             : '<div class="badge badge-urgent">در انتظار تأیید مدیر</div>';
@@ -688,6 +692,35 @@ async function submitPresentation() {
         showToast('برای تایید مدیر ارسال شد', 'success');
         loadDashboard();
     } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function loadSupportThread() {
+    try {
+        const data = await apiGet('/api/support/thread', true);
+        const box = document.getElementById('supportMessages');
+        if (!box) return;
+        box.innerHTML = (data.messages || []).map(m => `
+            <div class="chat-bubble ${m.sender_type === 'company' ? 'mine' : 'theirs'}">
+                ${esc(m.body)}
+                <span class="chat-bubble-time">${esc(toPersianDate(m.created_at, true))}</span>
+            </div>
+        `).join('') || '<div class="empty-state">اگر سؤال یا مشکلی دارید، همین‌جا بنویسید</div>';
+        box.scrollTop = box.scrollHeight;
+        if (!window._supportPollStarted) {
+            window._supportPollStarted = true;
+            setInterval(loadSupportThread, 15000);
+        }
+    } catch (e) { /* اگر نشد، بی‌سروصدا رد می‌شود */ }
+}
+async function sendSupportMessage() {
+    const input = document.getElementById('supportInput');
+    const body = input.value.trim();
+    if (!body) return;
+    input.value = '';
+    try {
+        await apiSend('POST', '/api/support/messages', { body }, true);
+        loadSupportThread();
+    } catch (e) { showToast(e.message, 'error'); input.value = body; }
 }
 
 async function loadWeeklyDigest() {

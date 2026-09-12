@@ -105,6 +105,7 @@ async function loadNotifications() {
         setTabBadge('tabBadgeAds', n.pendingAds);
         setTabBadge('tabBadgeMessages', n.unreadMessages);
         setTabBadge('tabBadgeChat', n.pendingReports + n.pendingConversations);
+        setTabBadge('tabBadgeSupport', n.pendingSupport);
     } catch {}
 }
 function setTabBadge(id, count) {
@@ -121,7 +122,7 @@ function switchAdminTab(tab) {
     const loaders = {
         overview: loadOverview, pending: loadPending, companies: loadCompanies, offers: loadOffers,
         requests: loadRequests, rfqs: loadRfqs, services: loadServices, ads: loadAds, messages: loadMessages,
-        files: loadFiles, lookups: loadLookups, chat: loadAdminChat, sms: loadAdminSms,
+        files: loadFiles, lookups: loadLookups, chat: loadAdminChat, sms: loadAdminSms, support: loadAdminSupport,
     };
     loaders[tab] && loaders[tab]();
 }
@@ -356,6 +357,75 @@ async function loadAdminChat() {
         `;
     } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
 }
+// ------------------------------------------------------------------
+// چت پشتیبانی: پاسخ به شرکت‌ها
+// ------------------------------------------------------------------
+let activeSupportThreadId = null;
+async function loadAdminSupport() {
+    const el = document.getElementById('admin-support');
+    el.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
+    try {
+        const threads = await apiGet('/api/admin/support/threads');
+        el.innerHTML = `
+            <h2 class="section-title">🛟 پشتیبانی شرکت‌ها</h2>
+            <div id="supportThreadsList">
+                ${threads.map(t => `
+                    <div class="chat-list-item" onclick="openAdminSupportThread(${t.id}, ${JSON.stringify(t.company_name)})">
+                        <div>
+                            <div class="chat-list-name">${esc(t.company_name)} <span style="color:var(--text-light); font-size:0.75rem;">(${esc(t.company_phone)})</span></div>
+                            <div class="chat-list-preview">${esc(t.last_message || 'هنوز پیامی نیست')}</div>
+                        </div>
+                        ${t.unread_count > 0 ? `<span class="chat-unread-badge">${t.unread_count}</span>` : ''}
+                    </div>
+                `).join('') || '<div class="empty-state">هنوز هیچ شرکتی پیام پشتیبانی نفرستاده</div>'}
+            </div>
+            <div id="adminSupportThreadView" style="display:none; margin-top:1rem;">
+                <div class="card chat-card">
+                    <div class="chat-thread-header">
+                        <button class="chat-back-btn" onclick="document.getElementById('adminSupportThreadView').style.display='none'; document.getElementById('supportThreadsList').style.display='block';">← بازگشت</button>
+                        <span id="adminSupportThreadTitle"></span>
+                    </div>
+                    <div id="adminSupportMessages" class="chat-messages"></div>
+                    <div class="chat-input-row">
+                        <input type="text" id="adminSupportInput" placeholder="پاسخ خود را بنویسید..." onkeydown="if(event.key==='Enter'){sendAdminSupportMessage();}">
+                        <button onclick="sendAdminSupportMessage()">ارسال</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
+}
+async function openAdminSupportThread(id, companyName) {
+    activeSupportThreadId = id;
+    document.getElementById('supportThreadsList').style.display = 'none';
+    document.getElementById('adminSupportThreadView').style.display = 'block';
+    document.getElementById('adminSupportThreadTitle').textContent = companyName;
+    await loadAdminSupportMessages();
+}
+async function loadAdminSupportMessages() {
+    if (!activeSupportThreadId) return;
+    try {
+        const msgs = await apiGet(`/api/admin/support/threads/${activeSupportThreadId}/messages`);
+        document.getElementById('adminSupportMessages').innerHTML = msgs.map(m => `
+            <div class="chat-bubble ${m.sender_type === 'admin' ? 'mine' : 'theirs'}">
+                ${esc(m.body)}
+                <span class="chat-bubble-time">${esc(toPersianDate(m.created_at, true))}</span>
+            </div>
+        `).join('') || '<div class="empty-state">پیامی نیست</div>';
+    } catch (e) { showToast(e.message, 'error'); }
+}
+async function sendAdminSupportMessage() {
+    const input = document.getElementById('adminSupportInput');
+    const body = input.value.trim();
+    if (!body || !activeSupportThreadId) return;
+    input.value = '';
+    try {
+        await apiSend('POST', `/api/admin/support/threads/${activeSupportThreadId}/messages`, { body });
+        loadAdminSupportMessages();
+        loadNotifications();
+    } catch (e) { showToast(e.message, 'error'); input.value = body; }
+}
+
 async function loadAdminSms() {
     const el = document.getElementById('admin-sms');
     el.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
