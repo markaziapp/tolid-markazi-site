@@ -315,7 +315,7 @@ function companyCard(c) {
         <div class="card-footer">
             <button class="btn btn-primary btn-sm" onclick="startChatWith(${c.id})">💬 گفتگو</button>
             <a class="btn btn-outline btn-sm" href="company-profile.html?id=${c.id}">مشاهده پروفایل</a>
-            <button class="btn btn-outline btn-sm" onclick="shareCompany(${c.id}, ${JSON.stringify(c.name)})" title="اشتراک‌گذاری">🔗</button>
+            <button class="btn btn-outline btn-sm" onclick='shareCompany(${c.id}, ${JSON.stringify(c.name)})' title="اشتراک‌گذاری">🔗</button>
         </div>
     </div>`;
 }

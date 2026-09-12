@@ -370,7 +370,7 @@ async function loadAdminSupport() {
             <h2 class="section-title">🛟 پشتیبانی شرکت‌ها</h2>
             <div id="supportThreadsList">
                 ${threads.map(t => `
-                    <div class="chat-list-item" onclick="openAdminSupportThread(${t.id}, ${JSON.stringify(t.company_name)})">
+                    <div class="chat-list-item" onclick='openAdminSupportThread(${t.id}, ${JSON.stringify(t.company_name)})'>
                         <div>
                             <div class="chat-list-name">${esc(t.company_name)} <span style="color:var(--text-light); font-size:0.75rem;">(${esc(t.company_phone)})</span></div>
                             <div class="chat-list-preview">${esc(t.last_message || 'هنوز پیامی نیست')}</div>
