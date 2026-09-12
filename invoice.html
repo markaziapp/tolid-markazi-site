@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>پیش‌فاکتور ساز | همتا صنعت</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css">
+<script src="assets/config.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Vazirmatn', Tahoma, sans-serif; direction: rtl; background: #f1f5f9; color: #1e293b; padding: 1rem; }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+  .topbar a { color: #0f3460; font-size: 0.85rem; font-weight: 700; }
+  h1 { font-size: 1.15rem; color: #0f3460; }
+
+  .card { background: #fff; border-radius: 12px; padding: 1.1rem; margin-bottom: 1rem; box-shadow: 0 2px 10px rgba(15,52,96,0.06); border: 1px solid #e2e8f0; }
+  .card h3 { font-size: 0.95rem; margin-bottom: 0.8rem; color: #0f3460; }
+  label { display: block; font-size: 0.8rem; color: #64748b; margin-bottom: 0.3rem; }
+  input, textarea { width: 100%; padding: 0.55rem 0.7rem; border-radius: 8px; border: 1px solid #e2e8f0; font-family: inherit; font-size: 0.88rem; margin-bottom: 0.7rem; }
+  .row { display: flex; gap: 0.6rem; }
+  .row > div { flex: 1; }
+
+  .items-table { width: 100%; border-collapse: collapse; margin-bottom: 0.6rem; }
+  .items-table th { font-size: 0.75rem; color: #64748b; text-align: right; padding: 0.4rem; }
+  .items-table td { padding: 0.3rem; }
+  .items-table input { margin-bottom: 0; }
+  .item-del { background: #fee2e2; color: #dc2626; border: none; border-radius: 6px; width: 28px; height: 28px; cursor: pointer; font-size: 0.9rem; }
+
+  button.action { padding: 0.6rem 1.1rem; border-radius: 8px; border: none; font-family: inherit; font-weight: 700; font-size: 0.85rem; cursor: pointer; }
+  .btn-add { background: #eef2f7; color: #0f3460; }
+  .btn-print { background: #d4a94e; color: #fff; }
+  .btn-print:hover { background: #b8892f; }
+
+  /* --- برگهٔ چاپی --- */
+  .sheet { background: #fff; border-radius: 12px; padding: 1.6rem; box-shadow: 0 2px 10px rgba(15,52,96,0.06); border: 1px solid #e2e8f0; }
+  .sheet-head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0f3460; padding-bottom: 1rem; margin-bottom: 1rem; }
+  .sheet-head .logo { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; }
+  .sheet-head .co-name { font-size: 1.15rem; font-weight: 800; color: #0f3460; }
+  .sheet-head .co-meta { font-size: 0.78rem; color: #64748b; margin-top: 0.2rem; }
+  .sheet-head .inv-meta { text-align: left; font-size: 0.8rem; color: #64748b; }
+  .sheet-head .inv-meta b { color: #0f3460; }
+  .cust-box { background: #f8fafc; border-radius: 8px; padding: 0.7rem 1rem; margin-bottom: 1rem; font-size: 0.85rem; }
+  table.final { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+  table.final th { background: #0f3460; color: #fff; font-size: 0.78rem; padding: 0.5rem; text-align: right; }
+  table.final td { padding: 0.5rem; font-size: 0.85rem; border-bottom: 1px solid #e2e8f0; }
+  .totals { margin-right: auto; width: 260px; font-size: 0.85rem; }
+  .totals div { display: flex; justify-content: space-between; padding: 0.3rem 0; }
+  .totals .grand { border-top: 2px solid #0f3460; margin-top: 0.4rem; padding-top: 0.5rem; font-weight: 800; color: #0f3460; font-size: 1rem; }
+  .sheet-note { font-size: 0.78rem; color: #64748b; margin-top: 1rem; }
+  .sheet-footer { text-align: center; font-size: 0.72rem; color: #94a3b8; margin-top: 1.5rem; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .no-print { display: none !important; }
+    .sheet { box-shadow: none; border: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+    <div class="topbar no-print">
+        <h1>📝 پیش‌فاکتور ساز</h1>
+        <a href="company.html">← بازگشت به پنل</a>
+    </div>
+
+    <div id="authGate" style="display:none;" class="card">برای استفاده از این ابزار ابتدا باید وارد پنل خود شوید. <a href="company.html">ورود</a></div>
+
+    <div id="formArea" class="no-print">
+        <div class="card">
+            <h3>مشخصات مشتری</h3>
+            <div class="row">
+                <div><label>نام مشتری / شرکت خریدار</label><input type="text" id="custName" oninput="renderSheet()"></div>
+                <div><label>شماره تماس مشتری (اختیاری)</label><input type="text" id="custPhone" oninput="renderSheet()"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>ردیف‌های کالا/خدمات</h3>
+            <table class="items-table">
+                <tr><th>شرح کالا</th><th style="width:70px;">تعداد</th><th style="width:100px;">قیمت واحد (ریال)</th><th style="width:30px;"></th></tr>
+                <tbody id="itemsBody"></tbody>
+            </table>
+            <button class="action btn-add" onclick="addItem()">+ افزودن ردیف</button>
+        </div>
+
+        <div class="card">
+            <h3>تخفیف، مالیات و توضیحات</h3>
+            <div class="row">
+                <div><label>درصد تخفیف</label><input type="number" id="discountPct" value="0" min="0" max="100" oninput="renderSheet()"></div>
+                <div><label>درصد مالیات بر ارزش افزوده</label><input type="number" id="taxPct" value="0" min="0" max="100" oninput="renderSheet()"></div>
+                <div><label>اعتبار پیش‌فاکتور (روز)</label><input type="number" id="validDays" value="7" min="1" oninput="renderSheet()"></div>
+            </div>
+            <label>توضیحات / شرایط پرداخت</label>
+            <textarea id="notes" rows="2" oninput="renderSheet()" placeholder="مثال: پرداخت نقدی، تحویل درب کارخانه..."></textarea>
+        </div>
+
+        <button class="action btn-print" style="width:100%; padding:0.8rem;" onclick="window.print()">🖨️ دانلود / چاپ PDF</button>
+    </div>
+
+    <div style="height:1rem;"></div>
+    <div class="sheet" id="sheet" style="display:none;">
+        <div class="sheet-head">
+            <div style="display:flex; gap:0.8rem; align-items:center;">
+                <img class="logo" id="shLogo" style="display:none;">
+                <div>
+                    <div class="co-name" id="shCoName"></div>
+                    <div class="co-meta" id="shCoMeta"></div>
+                </div>
+            </div>
+            <div class="inv-meta">
+                <div>شمارهٔ پیش‌فاکتور: <b id="shInvNo"></b></div>
+                <div>تاریخ: <b id="shDate"></b></div>
+                <div>اعتبار تا: <b id="shValidUntil"></b></div>
+            </div>
+        </div>
+        <div class="cust-box"><b>خریدار:</b> <span id="shCustName"></span> <span id="shCustPhone"></span></div>
+        <table class="final">
+            <thead><tr><th>#</th><th>شرح کالا / خدمات</th><th>تعداد</th><th>قیمت واحد (ریال)</th><th>جمع (ریال)</th></tr></thead>
+            <tbody id="shItems"></tbody>
+        </table>
+        <div class="totals">
+            <div><span>جمع کل</span><span id="shSubtotal">۰</span></div>
+            <div id="shDiscountRow" style="display:none;"><span>تخفیف</span><span id="shDiscount">۰</span></div>
+            <div id="shTaxRow" style="display:none;"><span>ارزش افزوده</span><span id="shTax">۰</span></div>
+            <div class="grand"><span>مبلغ نهایی</span><span id="shGrand">۰</span></div>
+        </div>
+        <div class="sheet-note" id="shNotes"></div>
+        <div class="sheet-footer">این پیش‌فاکتور توسط پلتفرم همتا صنعت مرکزی صادر شده است</div>
+    </div>
+</div>
+
+<script>
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function api(path) { return (window.API_BASE || '') + path; }
+function getToken() { return localStorage.getItem('companyToken'); }
+function fmt(n) { return Math.round(n || 0).toLocaleString('fa-IR'); }
+
+function toPersianDate(d) {
+    const g_d_m = [0,31,59,90,120,151,181,212,243,273,304,334];
+    let gy = d.getFullYear(), gm = d.getMonth() + 1, gd = d.getDate();
+    let jy = (gy <= 1600) ? 0 : 979;
+    gy -= (gy <= 1600) ? 621 : 1600;
+    const gy2 = (gm > 2) ? (gy + 1) : gy;
+    let days = (365 * gy) + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) - 80 + gd + g_d_m[gm - 1];
+    jy += 33 * Math.floor(days / 12053); days %= 12053;
+    jy += 4 * Math.floor(days / 1461); days %= 1461;
+    jy += Math.floor((days - 1) / 365);
+    if (days > 365) days = (days - 1) % 365;
+    const jm = (days < 186) ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
+    const jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
+    const pad = n => String(n).padStart(2, '0');
+    return `${jy}/${pad(jm)}/${pad(jd)}`;
+}
+
+let myCompany = null;
+
+async function init() {
+    if (!getToken()) { document.getElementById('authGate').style.display = 'block'; document.getElementById('formArea').style.display = 'none'; return; }
+    try {
+        const res = await fetch(api('/api/company/dashboard'), { headers: { Authorization: 'Bearer ' + getToken() } });
+        const data = await res.json();
+        if (!res.ok) throw new Error();
+        myCompany = data.company;
+        addItem();
+        renderSheet();
+    } catch (e) {
+        document.getElementById('authGate').style.display = 'block';
+        document.getElementById('formArea').style.display = 'none';
+    }
+}
+
+function addItem() {
+    const tbody = document.getElementById('itemsBody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td><input type="text" class="it-name" oninput="renderSheet()"></td>
+        <td><input type="number" class="it-qty" value="1" min="0" oninput="renderSheet()"></td>
+        <td><input type="number" class="it-price" value="0" min="0" oninput="renderSheet()"></td>
+        <td><button class="item-del" onclick="this.closest('tr').remove(); renderSheet();">×</button></td>
+    `;
+    tbody.appendChild(tr);
+}
+
+function getInvoiceNumber() {
+    const key = 'invoiceCounter_' + (myCompany?.id || '0');
+    let n = parseInt(localStorage.getItem(key) || '0') + 1;
+    localStorage.setItem(key, n);
+    const jy = toPersianDate(new Date()).split('/')[0];
+    return `PF-${jy}-${String(n).padStart(4, '0')}`;
+}
+let fixedInvoiceNo = null;
+
+function renderSheet() {
+    if (!myCompany) return;
+    document.getElementById('sheet').style.display = 'block';
+    document.getElementById('shCoName').textContent = myCompany.name;
+    document.getElementById('shCoMeta').textContent = `${myCompany.county || ''} — تماس: ${myCompany.phone || ''}`;
+    if (myCompany.logo_url) { document.getElementById('shLogo').src = myCompany.logo_url; document.getElementById('shLogo').style.display = 'block'; }
+    if (!fixedInvoiceNo) fixedInvoiceNo = getInvoiceNumber();
+    document.getElementById('shInvNo').textContent = fixedInvoiceNo;
+    const today = new Date();
+    document.getElementById('shDate').textContent = toPersianDate(today);
+    const validDays = parseInt(document.getElementById('validDays').value) || 7;
+    const validUntil = new Date(today.getTime() + validDays * 86400000);
+    document.getElementById('shValidUntil').textContent = toPersianDate(validUntil);
+
+    document.getElementById('shCustName').textContent = document.getElementById('custName').value || '—';
+    document.getElementById('shCustPhone').textContent = document.getElementById('custPhone').value ? '— ' + document.getElementById('custPhone').value : '';
+
+    const rows = [...document.querySelectorAll('#itemsBody tr')];
+    let subtotal = 0;
+    const bodyHtml = rows.map((r, i) => {
+        const name = r.querySelector('.it-name').value || '—';
+        const qty = parseFloat(r.querySelector('.it-qty').value) || 0;
+        const price = parseFloat(r.querySelector('.it-price').value) || 0;
+        const lineTotal = qty * price;
+        subtotal += lineTotal;
+        return `<tr><td>${i + 1}</td><td>${esc(name)}</td><td>${fmt(qty)}</td><td>${fmt(price)}</td><td>${fmt(lineTotal)}</td></tr>`;
+    }).join('');
+    document.getElementById('shItems').innerHTML = bodyHtml || '<tr><td colspan="5" style="text-align:center; color:#94a3b8;">ردیفی ثبت نشده</td></tr>';
+
+    const discountPct = parseFloat(document.getElementById('discountPct').value) || 0;
+    const taxPct = parseFloat(document.getElementById('taxPct').value) || 0;
+    const discountAmt = subtotal * discountPct / 100;
+    const afterDiscount = subtotal - discountAmt;
+    const taxAmt = afterDiscount * taxPct / 100;
+    const grand = afterDiscount + taxAmt;
+
+    document.getElementById('shSubtotal').textContent = fmt(subtotal);
+    document.getElementById('shDiscountRow').style.display = discountPct > 0 ? 'flex' : 'none';
+    document.getElementById('shDiscount').textContent = '−' + fmt(discountAmt);
+    document.getElementById('shTaxRow').style.display = taxPct > 0 ? 'flex' : 'none';
+    document.getElementById('shTax').textContent = '+' + fmt(taxAmt);
+    document.getElementById('shGrand').textContent = fmt(grand) + ' ریال';
+
+    document.getElementById('shNotes').textContent = document.getElementById('notes').value || '';
+}
+
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
