@@ -133,6 +133,11 @@ function renderProfile(c) {
     `;
     document.getElementById('pChatBtn').onclick = () => startChatWith(c.id);
     document.getElementById('pCatalogBtn').href = `catalog.html?id=${c.id}`;
+    if (c.verified) {
+        const certBtn = document.getElementById('pCertBtn');
+        certBtn.href = `certificate.html?id=${c.id}`;
+        certBtn.style.display = 'inline-flex';
+    }
     document.title = `${c.name} | همتا صنعت`;
     renderAuthArea();
 }

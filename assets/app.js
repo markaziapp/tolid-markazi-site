@@ -177,10 +177,40 @@ function switchTab(tab) {
     if (tab === 'services') loadServices('servicesList');
     if (tab === 'companies') loadCompanies('companiesList');
     if (tab === 'map') loadFactoryMap();
+    if (tab === 'events') loadEvents();
+    if (tab === 'showcase') loadShowcase();
     if (tab === 'tools') loadFiles();
 }
 
 let factoryMapInstance = null, factoryMarkersLayer = null;
+async function loadEvents() {
+    const el = document.getElementById('eventsList');
+    try {
+        const events = await apiGet('/api/events');
+        if (!events.length) { el.innerHTML = emptyState('در حال حاضر رویداد آتی‌ای ثبت نشده'); return; }
+        el.innerHTML = events.map(ev => `
+            <div class="card" style="padding:1rem; margin-bottom:0.8rem;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.6rem;">
+                    <div>
+                        <div style="font-weight:800; color:var(--primary); font-size:0.98rem;">${esc(ev.title)}</div>
+                        <div style="font-size:0.8rem; color:var(--text-light); margin-top:0.2rem;">📅 ${esc(toPersianDate(ev.event_date))} ${ev.location ? '• 📍 ' + esc(ev.location) : ''}</div>
+                    </div>
+                </div>
+                ${ev.description ? `<p style="font-size:0.85rem; margin-top:0.6rem;">${esc(ev.description)}</p>` : ''}
+                ${ev.link ? `<a href="${esc(ev.link)}" target="_blank" class="btn btn-outline btn-sm" style="margin-top:0.6rem;">جزئیات بیشتر ←</a>` : ''}
+            </div>
+        `).join('');
+    } catch (e) { el.innerHTML = emptyState('خطا در بارگذاری رویدادها'); }
+}
+
+async function loadShowcase() {
+    const el = document.getElementById('showcaseList');
+    try {
+        const offers = await apiGet('/api/offers?featured=1&limit=30');
+        el.innerHTML = offers.map(offerCard).join('') || emptyState('هنوز محصولی برای نمایشگاه انتخاب نشده — این‌ها را مدیریت از بین آگهی‌های ⭐ستاره‌دار انتخاب می‌کند');
+    } catch (e) { el.innerHTML = emptyState('خطا در بارگذاری نمایشگاه'); }
+}
+
 async function loadFactoryMap() {
     if (!factoryMapInstance) {
         factoryMapInstance = L.map('factoryMap').setView([34.35, 49.9], 9);
@@ -378,6 +408,17 @@ async function loadHome() {
     } catch (e) { showToast('خطا در بارگذاری اطلاعات صفحه اصلی', 'error'); }
     loadCompanies('homeCompanies', 3);
     loadAds();
+    loadTopWeeklyOffers();
+}
+
+async function loadTopWeeklyOffers() {
+    try {
+        const offers = await apiGet('/api/offers/top-weekly');
+        const section = document.getElementById('topWeeklySection');
+        if (!offers.length) { section.style.display = 'none'; return; }
+        section.style.display = 'block';
+        document.getElementById('topWeeklyOffers').innerHTML = offers.map(offerCard).join('');
+    } catch (e) { /* اگر نشد، این بخش نمایش داده نمی‌شود */ }
 }
 
 function emptyState(text) { return `<div class="empty-state">${text}</div>`; }
@@ -672,6 +713,7 @@ async function submitAdRequest() {
 async function showOfferDetails(id) {
     try {
         const o = await apiGet('/api/offers/' + id);
+        trackView('/offer/' + id);
         document.getElementById('detailsTitle').textContent = o.title;
         document.getElementById('detailsBody').innerHTML = `
             <p><b>شرکت:</b> ${esc(o.company_name)}</p>

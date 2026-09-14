@@ -339,6 +339,7 @@ async function doRegister() {
             county: pendingCounty || '',
             latitude: pendingLat, longitude: pendingLng,
             industrialZone: pendingIndustrialZone || null,
+            refCode: new URLSearchParams(location.search).get('ref') || null,
         });
         setToken(data.token);
         showToast('ثبت‌نام شما انجام شد', 'success');
@@ -391,8 +392,14 @@ async function loadDashboard() {
         const catalogBtn = document.getElementById('catalogBtn');
         catalogBtn.href = `catalog.html?id=${data.company.id}`;
         catalogBtn.style.display = 'inline-flex';
+        if (data.company.verified) {
+            const certBtn = document.getElementById('certificateBtn');
+            certBtn.href = `certificate.html?id=${data.company.id}`;
+            certBtn.style.display = 'inline-flex';
+        }
         loadWeeklyDigest();
         loadSupportThread();
+        loadReferralInfo();
         if (location.hash === '#support') {
             setTimeout(() => document.getElementById('supportMessages')?.scrollIntoView({ behavior: 'smooth' }), 300);
         }
@@ -721,6 +728,21 @@ async function sendSupportMessage() {
         await apiSend('POST', '/api/support/messages', { body }, true);
         loadSupportThread();
     } catch (e) { showToast(e.message, 'error'); input.value = body; }
+}
+
+async function loadReferralInfo() {
+    try {
+        const d = await apiGet('/api/company/referrals', true);
+        const card = document.getElementById('referralCard');
+        card.style.display = 'block';
+        const link = `${location.origin}${location.pathname}?ref=${d.referralCode}`;
+        card.innerHTML = `
+            <div class="rf-title">🤝 دعوت از همکاران — با هر ثبت‌نام موفق، شبکه‌تان بزرگ‌تر می‌شود</div>
+            <div class="rf-code">${esc(d.referralCode)}</div><br>
+            <button onclick="navigator.clipboard.writeText('${link}'); showToast('لینک کپی شد', 'success');">📋 کپی لینک دعوت</button>
+            <div class="rf-count">${d.count} نفر تا الان با لینک شما ثبت‌نام کرده‌اند</div>
+        `;
+    } catch (e) { /* اگر نشد، این کارت را نمایش نده */ }
 }
 
 async function loadWeeklyDigest() {

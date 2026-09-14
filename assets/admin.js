@@ -126,7 +126,7 @@ function switchAdminTab(tab) {
     const loaders = {
         overview: loadOverview, pending: loadPending, companies: loadCompanies, offers: loadOffers,
         requests: loadRequests, rfqs: loadRfqs, services: loadServices, ads: loadAds, messages: loadMessages,
-        files: loadFiles, lookups: loadLookups, chat: loadAdminChat, sms: loadAdminSms, support: loadAdminSupport,
+        files: loadFiles, lookups: loadLookups, chat: loadAdminChat, sms: loadAdminSms, support: loadAdminSupport, events: loadAdminEvents,
     };
     loaders[tab] && loaders[tab]();
 }
@@ -428,6 +428,59 @@ async function sendAdminSupportMessage() {
         loadAdminSupportMessages();
         loadNotifications();
     } catch (e) { showToast(e.message, 'error'); input.value = body; }
+}
+
+// ------------------------------------------------------------------
+// تقویم رویدادهای صنعتی استان
+// ------------------------------------------------------------------
+async function loadAdminEvents() {
+    const el = document.getElementById('admin-events');
+    el.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
+    try {
+        const events = await apiGet('/api/admin/events');
+        el.innerHTML = `
+            <h2 class="section-title">📅 افزودن رویداد جدید</h2>
+            <div class="card" style="padding:1rem; margin-bottom:1rem;">
+                <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:0.6rem;">
+                    <input type="text" id="evTitle" placeholder="عنوان رویداد" style="padding:0.5rem; border-radius:8px; border:1px solid var(--border);">
+                    <input type="date" id="evDate" style="padding:0.5rem; border-radius:8px; border:1px solid var(--border);">
+                </div>
+                <input type="text" id="evLocation" placeholder="محل برگزاری" style="width:100%; margin-top:0.6rem; padding:0.5rem; border-radius:8px; border:1px solid var(--border);">
+                <textarea id="evDescription" rows="2" placeholder="توضیحات" style="width:100%; margin-top:0.6rem; padding:0.5rem; border-radius:8px; border:1px solid var(--border); font-family:inherit;"></textarea>
+                <input type="text" id="evLink" placeholder="لینک بیشتر (اختیاری)" style="width:100%; margin-top:0.6rem; padding:0.5rem; border-radius:8px; border:1px solid var(--border);">
+                <button class="btn btn-primary" style="width:100%; margin-top:0.6rem;" onclick="addEvent()">افزودن رویداد</button>
+            </div>
+            <h2 class="section-title">همهٔ رویدادها</h2>
+            <table class="admin-table">
+                <tr><th>عنوان</th><th>تاریخ</th><th>محل</th><th>عملیات</th></tr>
+                ${events.map(ev => `<tr>
+                    <td>${esc(ev.title)}</td>
+                    <td>${esc(toPersianDate(ev.event_date))}</td>
+                    <td>${esc(ev.location || '-')}</td>
+                    <td><button class="btn btn-sm btn-danger" onclick="delEvent(${ev.id})">حذف</button></td>
+                </tr>`).join('') || '<tr><td colspan="4">رویدادی ثبت نشده</td></tr>'}
+            </table>
+        `;
+    } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
+}
+async function addEvent() {
+    const title = document.getElementById('evTitle').value.trim();
+    const eventDate = document.getElementById('evDate').value;
+    if (!title || !eventDate) { showToast('عنوان و تاریخ الزامی است', 'error'); return; }
+    try {
+        await apiSend('POST', '/api/admin/events', {
+            title, eventDate,
+            location: document.getElementById('evLocation').value.trim(),
+            description: document.getElementById('evDescription').value.trim(),
+            link: document.getElementById('evLink').value.trim(),
+        });
+        showToast('رویداد اضافه شد', 'success');
+        loadAdminEvents();
+    } catch (e) { showToast(e.message, 'error'); }
+}
+async function delEvent(id) {
+    try { await apiSend('DELETE', `/api/admin/events/${id}`); loadAdminEvents(); }
+    catch (e) { showToast(e.message, 'error'); }
 }
 
 async function loadAdminSms() {
