@@ -13,9 +13,10 @@
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css">
-<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="assets/styles.css?v=2">
+<script src="assets/theme.js?v=2"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
-<script src="assets/config.js"></script>
+<script src="assets/config.js?v=2"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script defer src="assets/pwa.js"></script>
 </head>
@@ -35,6 +36,8 @@
     <button class="tab-btn" data-tab="services" onclick="switchTab('services')">درخواست خدمات</button>
     <button class="tab-btn" data-tab="companies" onclick="switchTab('companies')">واحدهای تولیدی</button>
     <button class="tab-btn" data-tab="map" onclick="switchTab('map')">🗺️ نقشه</button>
+    <button class="tab-btn" data-tab="events" onclick="switchTab('events')">📅 رویدادها</button>
+    <button class="tab-btn" data-tab="showcase" onclick="switchTab('showcase')">🏆 نمایشگاه برتر</button>
     <button class="tab-btn" data-tab="tools" onclick="switchTab('tools')">فایل‌ها</button>
 </nav>
 
@@ -58,6 +61,13 @@
             <button class="btn btn-gold" onclick="openModalAuth('supplyModal', 'ثبت آگهی')">+ عرضه محصول</button>
             <button class="btn btn-primary" onclick="openModalAuth('purchaseRequestModal', 'ثبت درخواست خرید')">+ درخواست خرید</button>
             <button class="btn btn-outline" onclick="openModalAuth('serviceRequestModal', 'ثبت درخواست خدمات')">+ درخواست خدمات</button>
+        </div>
+
+        <div id="topWeeklySection" style="display:none;">
+            <div class="section-head-row">
+                <h2 class="section-title">🔥 پرمخاطب‌ترین محصولات این هفته</h2>
+            </div>
+            <div id="topWeeklyOffers" class="cards-grid"></div>
         </div>
 
         <div class="section-head-row">
@@ -120,6 +130,19 @@
         <h2 class="section-title">🗺️ نقشهٔ واحدهای تولیدی استان</h2>
         <p style="font-size:0.82rem; color:var(--text-light); margin-bottom:0.7rem;">روی هر پین کلیک کنید تا پروفایل آن واحد را ببینید</p>
         <div id="factoryMap" style="height:60vh; min-height:360px; border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow);"></div>
+    </section>
+
+    <!-- ===================== تقویم رویدادها ===================== -->
+    <section id="tab-events" class="tab-page" style="display:none;">
+        <h2 class="section-title">📅 رویدادهای صنعتی استان</h2>
+        <div id="eventsList"><div class="loading">در حال بارگذاری...</div></div>
+    </section>
+
+    <!-- ===================== نمایشگاه محصولات برتر ===================== -->
+    <section id="tab-showcase" class="tab-page" style="display:none;">
+        <h2 class="section-title">🏆 نمایشگاه محصولات برتر استان</h2>
+        <p style="font-size:0.82rem; color:var(--text-light); margin-bottom:0.7rem;">منتخب مدیریت از میان بهترین آگهی‌های ثبت‌شده</p>
+        <div id="showcaseList" class="cards-grid"><div class="loading">در حال بارگذاری...</div></div>
     </section>
 
     <!-- ===================== فایل‌ها ===================== -->
@@ -298,7 +321,7 @@
     <span><a href="#" onclick="openModal('contactModal'); return false;" style="color:var(--primary); font-weight:700;">تماس با ما / پیشنهاد و انتقاد</a></span>
 </div>
 
-<script src="assets/app.js"></script>
-<script src="assets/support-widget.js"></script>
+<script src="assets/app.js?v=2"></script>
+<script src="assets/support-widget.js?v=2"></script>
 </body>
 </html>

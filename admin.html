@@ -7,9 +7,10 @@
 <meta name="robots" content="noindex, nofollow">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css">
-<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="assets/styles.css?v=2">
+<script src="assets/theme.js?v=2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-<script src="assets/config.js"></script>
+<script src="assets/config.js?v=2"></script>
 </head>
 <body>
 
@@ -43,6 +44,7 @@
     <button class="tab-btn" data-tab="chat" onclick="switchAdminTab('chat')">گفتگوها <span id="tabBadgeChat" class="tab-badge"></span></button>
     <button class="tab-btn" data-tab="sms" onclick="switchAdminTab('sms')">📨 پیامک</button>
     <button class="tab-btn" data-tab="support" onclick="switchAdminTab('support')">🛟 پشتیبانی <span id="tabBadgeSupport" class="tab-badge"></span></button>
+    <button class="tab-btn" data-tab="events" onclick="switchAdminTab('events')">📅 رویدادها</button>
     <button class="tab-btn" data-tab="companies" onclick="switchAdminTab('companies')">واحدها</button>
     <button class="tab-btn" data-tab="offers" onclick="switchAdminTab('offers')">عرضه‌ها</button>
     <button class="tab-btn" data-tab="requests" onclick="switchAdminTab('requests')">درخواست‌ها</button>
@@ -59,6 +61,7 @@
     <section id="admin-chat" class="admin-tab-page" style="display:none;"></section>
     <section id="admin-sms" class="admin-tab-page" style="display:none;"></section>
     <section id="admin-support" class="admin-tab-page" style="display:none;"></section>
+    <section id="admin-events" class="admin-tab-page" style="display:none;"></section>
     <section id="admin-companies" class="admin-tab-page" style="display:none;"></section>
     <section id="admin-offers" class="admin-tab-page" style="display:none;"></section>
     <section id="admin-requests" class="admin-tab-page" style="display:none;"></section>
@@ -76,6 +79,6 @@
     <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
     <img id="lightboxImg" src="" alt="">
 </div>
-<script src="assets/admin.js"></script>
+<script src="assets/admin.js?v=2"></script>
 </body>
 </html>

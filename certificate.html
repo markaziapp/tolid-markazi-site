@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>گواهی تأیید | همتا صنعت مرکزی</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css">
+<script src="assets/config.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Vazirmatn', Tahoma, sans-serif; direction: rtl; background: #eef1f5; color: #1c2530; padding: 1.2rem; }
+  .toolbar { max-width: 720px; margin: 0 auto 0.8rem; display: flex; justify-content: flex-end; }
+  .toolbar button { padding: 0.6rem 1.2rem; border-radius: 8px; border: none; background: #0f3460; color: #fff; font-family: inherit; font-weight: 700; font-size: 0.85rem; cursor: pointer; }
+  .cert { max-width: 720px; margin: 0 auto; background: #fff; border: 10px solid #0f3460; outline: 2px solid #d4a94e; outline-offset: -18px; padding: 2.4rem 2rem; text-align: center; position: relative; }
+  .cert .seal { position: absolute; top: 24px; left: 24px; width: 70px; height: 70px; border: 3px solid #d4a94e; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: #d4a94e; }
+  .cert .brand { color: #0f3460; font-weight: 800; font-size: 1rem; margin-bottom: 1.4rem; }
+  .cert h1 { color: #0f3460; font-size: 1.5rem; font-weight: 800; margin-bottom: 0.4rem; }
+  .cert .sub { color: #64748b; font-size: 0.85rem; margin-bottom: 1.8rem; }
+  .cert .cname { font-size: 1.7rem; font-weight: 800; color: #b8892f; margin: 1.2rem 0; }
+  .cert .body-text { font-size: 0.95rem; line-height: 2; color: #334155; max-width: 46ch; margin: 0 auto 1.6rem; }
+  .cert .meta { display: flex; justify-content: space-around; margin-top: 2rem; font-size: 0.8rem; color: #64748b; border-top: 1px dashed #cbd5e1; padding-top: 1.2rem; }
+  .cert .meta b { display: block; color: #0f3460; font-size: 0.88rem; margin-bottom: 0.2rem; }
+  #qrBox { margin-top: 1.2rem; }
+  #qrBox img { width: 90px; height: 90px; }
+  #loading, #notVerifiedBox { max-width: 720px; margin: 3rem auto; text-align: center; color: #64748b; }
+  #notVerifiedBox { background: #fff; border-radius: 12px; padding: 2rem; }
+  @media print { body { background: #fff; padding: 0; } .toolbar { display: none; } .cert { border-width: 8px; } }
+</style>
+</head>
+<body>
+
+<div class="toolbar"><button onclick="window.print()">🖨️ دانلود / چاپ PDF</button></div>
+
+<div id="loading">در حال بررسی...</div>
+<div id="notVerifiedBox" style="display:none;">این واحد هنوز توسط مدیریت پلتفرم تأیید نشده است، پس گواهی تأیید ندارد.</div>
+
+<div class="cert" id="certBox" style="display:none;">
+    <div class="seal">✔</div>
+    <div class="brand">🏭 همتا صنعت مرکزی</div>
+    <h1>گواهی تأیید واحد تولیدی</h1>
+    <div class="sub">بازار آنلاین صنعتی استان مرکزی</div>
+    <div class="body-text">
+        بدین‌وسیله گواهی می‌شود واحد
+        <div class="cname" id="certName"></div>
+        پس از بررسی مدارک فعالیت، در پلتفرم همتا صنعت مرکزی به‌عنوان واحد تولیدی <b>تأیید‌شده</b> ثبت است.
+    </div>
+    <div class="meta">
+        <div><b id="certCounty"></b>شهرستان</div>
+        <div><b id="certNumber"></b>شمارهٔ گواهی</div>
+        <div><b id="certDate"></b>تاریخ صدور</div>
+    </div>
+    <div id="qrBox"><img id="qrImg" alt="کد QR تأیید"></div>
+</div>
+
+<script>
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function api(path) { return (window.API_BASE || '') + path; }
+function toPersianDate(d) {
+    const g_d_m = [0,31,59,90,120,151,181,212,243,273,304,334];
+    let gy = d.getFullYear(), gm = d.getMonth() + 1, gd = d.getDate();
+    let jy = (gy <= 1600) ? 0 : 979;
+    gy -= (gy <= 1600) ? 621 : 1600;
+    const gy2 = (gm > 2) ? (gy + 1) : gy;
+    let days = (365 * gy) + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) - 80 + gd + g_d_m[gm - 1];
+    jy += 33 * Math.floor(days / 12053); days %= 12053;
+    jy += 4 * Math.floor(days / 1461); days %= 1461;
+    jy += Math.floor((days - 1) / 365);
+    if (days > 365) days = (days - 1) % 365;
+    const jm = (days < 186) ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
+    const jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
+    const pad = n => String(n).padStart(2, '0');
+    return `${jy}/${pad(jm)}/${pad(jd)}`;
+}
+
+async function loadCertificate() {
+    const id = new URLSearchParams(location.search).get('id');
+    if (!id) { document.getElementById('loading').style.display = 'none'; document.getElementById('notVerifiedBox').style.display = 'block'; return; }
+    try {
+        const res = await fetch(api(`/api/companies/${id}`));
+        const c = await res.json();
+        document.getElementById('loading').style.display = 'none';
+        if (!c || !c.verified) { document.getElementById('notVerifiedBox').style.display = 'block'; return; }
+        document.getElementById('certBox').style.display = 'block';
+        document.getElementById('certName').textContent = c.name;
+        document.getElementById('certCounty').textContent = c.county || '-';
+        document.getElementById('certNumber').textContent = 'HS-' + String(c.id).padStart(5, '0');
+        document.getElementById('certDate').textContent = toPersianDate(new Date());
+        const url = `${location.origin}${location.pathname.replace('certificate.html','company-profile.html')}?id=${c.id}`;
+        document.getElementById('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(url)}`;
+        document.title = `گواهی تأیید ${c.name} | همتا صنعت مرکزی`;
+    } catch (e) { document.getElementById('loading').style.display = 'none'; document.getElementById('notVerifiedBox').style.display = 'block'; }
+}
+window.addEventListener('DOMContentLoaded', loadCertificate);
+</script>
+</body>
+</html>
