@@ -164,7 +164,11 @@ function toggleAdMediaFields() {
 // ------------------------------------------------------------------
 function switchTab(tab) {
     document.querySelectorAll('.tab-page').forEach(el => el.style.display = 'none');
-    document.getElementById('tab-' + tab).style.display = 'block';
+    const target = document.getElementById('tab-' + tab);
+    target.style.display = 'block';
+    target.style.animation = 'none';
+    void target.offsetWidth; // اجبار به بازچینش برای اجرای دوبارهٔ انیمیشن
+    target.style.animation = '';
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     window.scrollTo({ top: 0, behavior: 'smooth' });
     trackView('/' + tab);
@@ -363,6 +367,10 @@ function toPersianDate(input, withTime) {
 // بارگذاری لیست‌ها
 // ------------------------------------------------------------------
 async function loadHome() {
+    const skeleton = '<div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div>';
+    const homeReq = document.getElementById('homeRequests'), homeOff = document.getElementById('homeOffers');
+    if (homeReq) homeReq.innerHTML = skeleton;
+    if (homeOff) homeOff.innerHTML = skeleton;
     try {
         const [reqs, offers] = await Promise.all([apiGet('/api/requests'), apiGet('/api/offers?limit=6')]);
         document.getElementById('homeRequests').innerHTML = reqs.slice(0, 3).map(requestCard).join('') || emptyState('هنوز درخواستی ثبت نشده');
@@ -708,3 +716,22 @@ async function loadDailyTicker() {
 window.addEventListener('DOMContentLoaded', () => {
     renderAuthArea(); loadLookups(); loadHome(); trackView('/home'); loadDailyTicker();
 });
+
+// محو-به-نمایان‌شدن نرم تصاویری که بعداً به صفحه اضافه می‌شوند
+(function () {
+    function prep(img) {
+        if (img.dataset.faded) return;
+        img.dataset.faded = '1';
+        img.classList.add('js-fade');
+        if (img.complete && img.naturalWidth > 0) { img.classList.add('js-loaded'); return; }
+        img.addEventListener('load', () => img.classList.add('js-loaded'), { once: true });
+        img.addEventListener('error', () => img.classList.add('js-loaded'), { once: true });
+    }
+    new MutationObserver(muts => {
+        muts.forEach(m => m.addedNodes.forEach(node => {
+            if (node.nodeType !== 1) return;
+            if (node.tagName === 'IMG') prep(node);
+            node.querySelectorAll && node.querySelectorAll('img').forEach(prep);
+        }));
+    }).observe(document.body, { childList: true, subtree: true });
+})();

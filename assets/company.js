@@ -873,3 +873,22 @@ window.addEventListener('DOMContentLoaded', () => {
     else if (location.hash === '#register') { goMapScreen(); }
     else { showScreen('authEntry'); }
 });
+
+// محو-به-نمایان‌شدن نرم تصاویری که بعداً به صفحه اضافه می‌شوند
+(function () {
+    function prep(img) {
+        if (img.dataset.faded) return;
+        img.dataset.faded = '1';
+        img.classList.add('js-fade');
+        if (img.complete && img.naturalWidth > 0) { img.classList.add('js-loaded'); return; }
+        img.addEventListener('load', () => img.classList.add('js-loaded'), { once: true });
+        img.addEventListener('error', () => img.classList.add('js-loaded'), { once: true });
+    }
+    new MutationObserver(muts => {
+        muts.forEach(m => m.addedNodes.forEach(node => {
+            if (node.nodeType !== 1) return;
+            if (node.tagName === 'IMG') prep(node);
+            node.querySelectorAll && node.querySelectorAll('img').forEach(prep);
+        }));
+    }).observe(document.body, { childList: true, subtree: true });
+})();

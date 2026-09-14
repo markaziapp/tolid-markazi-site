@@ -117,7 +117,11 @@ function setTabBadge(id, count) {
 
 function switchAdminTab(tab) {
     document.querySelectorAll('.admin-tab-page').forEach(el => el.style.display = 'none');
-    document.getElementById('admin-' + tab).style.display = 'block';
+    const target = document.getElementById('admin-' + tab);
+    target.style.display = 'block';
+    target.style.animation = 'none';
+    void target.offsetWidth;
+    target.style.animation = '';
     document.querySelectorAll('#adminTabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     const loaders = {
         overview: loadOverview, pending: loadPending, companies: loadCompanies, offers: loadOffers,
