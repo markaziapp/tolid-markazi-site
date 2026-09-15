@@ -9,6 +9,12 @@ window.addEventListener('DOMContentLoaded', function () {
     const btn = document.createElement('button');
     btn.id = 'themeToggle';
     btn.title = 'حالت تاریک/روشن';
+    const headerSlot = document.querySelector('.topbar');
+    if (headerSlot) {
+        btn.classList.add('theme-toggle-inline');
+        headerSlot.style.position = headerSlot.style.position || 'relative';
+        headerSlot.appendChild(btn);
+    }
     function updateIcon() {
         btn.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙';
     }
@@ -24,5 +30,5 @@ window.addEventListener('DOMContentLoaded', function () {
         updateIcon();
     };
     updateIcon();
-    document.body.appendChild(btn);
+    if (!headerSlot) document.body.appendChild(btn);
 });
