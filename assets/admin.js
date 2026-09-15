@@ -630,7 +630,7 @@ async function viewAdminThread(conversationId) {
     box.scrollIntoView({ behavior: 'smooth' });
     try {
         const msgs = await apiGet(`/api/admin/conversations/${conversationId}/messages`);
-        box.innerHTML = `<h3 class="section-title" style="font-size:1rem;">متن گفتگو</h3>
+        box.innerHTML = `<h3 class="section-title" style="font-size:1rem; display:flex; justify-content:space-between; align-items:center;">متن گفتگو <button onclick="document.getElementById('adminThreadView').style.display='none';" style="background:none; border:none; font-size:1.1rem; cursor:pointer; color:var(--text-light);">✕</button></h3>
             <div class="card" style="padding:1rem; max-height:360px; overflow-y:auto;">
                 ${msgs.map(m => `<div style="margin-bottom:0.6rem;"><b>${esc(m.sender_name)}</b> <span style="color:var(--text-light); font-size:0.72rem;">${esc(toPersianDate(m.created_at, true))}</span><div>${esc(m.body)}</div></div>`).join('') || '<div class="empty-state">پیامی نیست</div>'}
             </div>`;
