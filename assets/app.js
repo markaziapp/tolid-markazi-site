@@ -328,6 +328,8 @@ function offerCard(offer) {
             <button class="btn btn-outline btn-sm" onclick="showOfferDetails(${offer.id})">جزئیات</button>
             ${isMine ? '' : `<button class="btn btn-primary btn-sm" onclick="openRfq(${offer.id})">درخواست استعلام</button>`}
             <button class="btn btn-outline btn-sm" onclick='shareOffer(${offer.company_id}, ${JSON.stringify(offer.title)}, ${JSON.stringify(offer.company_name)})' title="اشتراک‌گذاری">🔗</button>
+            <button class="btn btn-outline btn-sm fav-btn" data-type="offer" data-id="${offer.id}" onclick="toggleFavorite('offer', ${offer.id}, this)" title="علاقه‌مندی">⭐</button>
+            <label class="btn btn-outline btn-sm compare-check-label"><input type="checkbox" class="compare-check" data-id="${offer.id}" onchange="toggleCompare(${offer.id}, this.checked)"> مقایسه</label>
         </div>
     </div>`;
 }
@@ -350,6 +352,7 @@ function companyCard(c) {
             <button class="btn btn-primary btn-sm" onclick="startChatWith(${c.id})">💬 گفتگو</button>
             <a class="btn btn-outline btn-sm" href="company-profile.html?id=${c.id}">مشاهده پروفایل</a>
             <button class="btn btn-outline btn-sm" onclick='shareCompany(${c.id}, ${JSON.stringify(c.name)})' title="اشتراک‌گذاری">🔗</button>
+            <button class="btn btn-outline btn-sm" onclick="toggleFavorite('company', ${c.id}, this)" title="علاقه‌مندی">⭐</button>
         </div>
     </div>`;
 }
@@ -754,6 +757,84 @@ async function loadDailyTicker() {
         el.textContent = `📊 امروز ${s.requestsToday} درخواست جدید ثبت شد • ${s.companiesTotal} واحد تولیدی عضو پلتفرم`;
     } catch { /* اگر نشد، بی‌سروصدا نادیده گرفته می‌شود */ }
 }
+
+// ------------------------------------------------------------------
+// علاقه‌مندی‌ها
+// ------------------------------------------------------------------
+async function toggleFavorite(type, id, btn) {
+    if (!requireLogin('علاقه‌مندی')) return;
+    try {
+        const res = await apiPost('/api/favorites/toggle', { targetType: type, targetId: id });
+        if (btn) { btn.style.color = res.favorited ? '#d4a94e' : ''; btn.style.borderColor = res.favorited ? '#d4a94e' : ''; }
+        showToast(res.favorited ? 'به علاقه‌مندی‌ها اضافه شد' : 'از علاقه‌مندی‌ها حذف شد', 'success');
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+// ------------------------------------------------------------------
+// مقایسهٔ محصولات (کاملاً سمت مرورگر، بدون نیاز به سرور)
+// ------------------------------------------------------------------
+function getCompareList() { try { return JSON.parse(localStorage.getItem('compareList') || '[]'); } catch { return []; } }
+function setCompareList(list) { localStorage.setItem('compareList', JSON.stringify(list)); renderCompareBar(); }
+
+function toggleCompare(id, checked) {
+    let list = getCompareList();
+    if (checked) {
+        if (list.length >= 3) { showToast('حداکثر ۳ محصول را می‌توانید مقایسه کنید', 'error'); document.querySelector(`.compare-check[data-id="${id}"]`).checked = false; return; }
+        if (!list.includes(id)) list.push(id);
+    } else {
+        list = list.filter(x => x !== id);
+    }
+    setCompareList(list);
+}
+
+function renderCompareBar() {
+    const list = getCompareList();
+    let bar = document.getElementById('compareBar');
+    if (!list.length) { if (bar) bar.remove(); return; }
+    if (!bar) {
+        bar = document.createElement('div');
+        bar.id = 'compareBar';
+        bar.style.cssText = 'position:fixed; bottom:0; left:0; right:0; background:#0f3460; color:#fff; padding:0.8rem 1rem; display:flex; justify-content:space-between; align-items:center; z-index:9997; box-shadow:0 -4px 16px rgba(0,0,0,0.2);';
+        document.body.appendChild(bar);
+    }
+    bar.innerHTML = `
+        <span style="font-size:0.85rem;">${list.length} محصول برای مقایسه انتخاب شده</span>
+        <span>
+            <button onclick="openCompareModal()" style="background:#d4a94e; color:#fff; border:none; padding:0.5rem 1rem; border-radius:8px; font-weight:700; font-family:inherit; cursor:pointer;">مقایسه</button>
+            <button onclick="setCompareList([]); document.querySelectorAll('.compare-check').forEach(c=>c.checked=false);" style="background:none; border:none; color:#fff; padding:0.5rem; cursor:pointer;">✕</button>
+        </span>`;
+}
+
+async function openCompareModal() {
+    const ids = getCompareList();
+    if (ids.length < 2) { showToast('حداقل ۲ محصول برای مقایسه انتخاب کنید', 'error'); return; }
+    const offers = await Promise.all(ids.map(id => apiGet(`/api/offers/${id}`).catch(() => null)));
+    const valid = offers.filter(Boolean);
+    const rows = [
+        ['نام محصول', o => esc(o.title)],
+        ['شرکت', o => esc(o.company_name)],
+        ['قیمت', o => esc(o.price || 'توافقی') + ' ' + esc(o.unit || '')],
+        ['شهرستان', o => esc(o.county || '-')],
+        ['حداقل سفارش', o => esc(o.moq || '-')],
+        ['شرایط پرداخت', o => esc(o.payment || '-')],
+    ];
+    const html = `
+        <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+            ${rows.map(([label, fn]) => `
+                <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:0.6rem; font-weight:700; color:var(--text-light); white-space:nowrap;">${label}</td>
+                    ${valid.map(o => `<td style="padding:0.6rem;">${fn(o)}</td>`).join('')}
+                </tr>
+            `).join('')}
+        </table>
+        </div>`;
+    document.getElementById('detailsTitle').textContent = 'مقایسهٔ محصولات';
+    document.getElementById('detailsBody').innerHTML = html;
+    openModal('detailsModal');
+}
+
+window.addEventListener('DOMContentLoaded', () => { renderCompareBar(); });
 
 window.addEventListener('DOMContentLoaded', () => {
     renderAuthArea(); loadLookups(); loadHome(); trackView('/home'); loadDailyTicker();

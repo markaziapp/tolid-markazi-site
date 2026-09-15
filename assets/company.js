@@ -400,6 +400,7 @@ async function loadDashboard() {
         loadWeeklyDigest();
         loadSupportThread();
         loadReferralInfo();
+        loadFavorites();
         if (location.hash === '#support') {
             setTimeout(() => document.getElementById('supportMessages')?.scrollIntoView({ behavior: 'smooth' }), 300);
         }
@@ -828,6 +829,7 @@ async function loadConversations() {
         const list = await apiGet('/api/chat/conversations', true);
         myCompanyId = currentDashData?.company?.id;
         const el = document.getElementById('chatConversationsList');
+        renderContactsBook(list);
         if (!list.length) { el.innerHTML = '<div class="empty-state">هنوز گفتگویی ندارید</div>'; return; }
         el.innerHTML = list.map(c => `
             <div class="chat-list-item" onclick="openChatThread(${c.id})">
@@ -839,6 +841,49 @@ async function loadConversations() {
             </div>
         `).join('');
     } catch (e) { /* اگر نشد، بی‌سروصدا رد می‌شود */ }
+}
+
+function renderContactsBook(conversations) {
+    const box = document.getElementById('contactsBook');
+    if (!box) return;
+    if (!conversations.length) { box.innerHTML = '<div class="empty-state">هنوز مخاطبی ندارید — از چت با کسی شروع کنید</div>'; return; }
+    box.innerHTML = conversations.map(c => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:0.5rem 0; border-bottom:1px solid #f0f0f0;">
+            <div>
+                <div style="font-weight:700; font-size:0.88rem;">${esc(c.other_name)}</div>
+                <div style="font-size:0.78rem; color:var(--text-light);">${esc(c.other_phone || '')} ${c.other_county ? '• ' + esc(c.other_county) : ''}</div>
+            </div>
+            <a href="tel:${esc(c.other_phone)}" class="btn btn-outline btn-sm">📞 تماس</a>
+        </div>
+    `).join('');
+}
+
+async function loadFavorites() {
+    const box = document.getElementById('favoritesList');
+    try {
+        const items = await apiGet('/api/favorites', true);
+        if (!items.length) { box.innerHTML = '<div class="empty-state">هنوز چیزی را علاقه‌مند نکرده‌اید — روی ⭐ کنار هر آگهی یا شرکت بزنید</div>'; return; }
+        box.innerHTML = items.map(it => it.type === 'offer'
+            ? `<div style="padding:0.5rem 0; border-bottom:1px solid #f0f0f0; font-size:0.85rem;"><b>${esc(it.data.title)}</b> — ${esc(it.data.company_name)} — ${esc(it.data.price || 'توافقی')}</div>`
+            : `<div style="padding:0.5rem 0; border-bottom:1px solid #f0f0f0; font-size:0.85rem;"><a href="company-profile.html?id=${it.data.id}"><b>${esc(it.data.name)}</b></a> — ${esc(it.data.county || '')}</div>`
+        ).join('');
+    } catch (e) { box.innerHTML = '<div class="empty-state">خطا در بارگذاری</div>'; }
+}
+
+function exportMyStatsCsv() {
+    if (!currentDashData) { showToast('اطلاعات هنوز کامل بارگذاری نشده', 'error'); return; }
+    const d = currentDashData;
+    let csv = '\uFEFF'; // BOM برای نمایش درست فارسی در اکسل
+    csv += 'نوع,عنوان,وضعیت,تاریخ ثبت\n';
+    (d.myOffers || []).forEach(o => { csv += `آگهی محصول,"${(o.title||'').replace(/"/g,'')}",${o.active?'فعال':'غیرفعال'},${(o.created_at||'').slice(0,10)}\n`; });
+    (d.myServices || []).forEach(s => { csv += `درخواست خدمات,"${(s.role_title||'').replace(/"/g,'')}",${s.status||''},${(s.created_at||'').slice(0,10)}\n`; });
+    (d.myRequests || []).forEach(r => { csv += `درخواست خرید,"${(r.product||'').replace(/"/g,'')}",${(r.responses||[]).length + ' پاسخ'},${(r.created_at||'').slice(0,10)}\n`; });
+    (d.myRfqsSent || []).forEach(rq => { csv += `استعلام ارسالی,"${(rq.offer_title||'').replace(/"/g,'')}",-,${(rq.created_at||'').slice(0,10)}\n`; });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `آمار-من-${new Date().toISOString().slice(0,10)}.csv`;
+    link.click();
 }
 
 async function openChatThread(id) {

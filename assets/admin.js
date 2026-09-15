@@ -160,7 +160,8 @@ async function loadOverview() {
             </div>
             <div class="card" style="padding:1rem; margin-bottom:0.8rem;">
                 <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-                    <button class="btn btn-primary btn-sm" onclick="downloadBackup()">📥 دانلود پشتیبان کامل</button>
+                    <button class="btn btn-primary btn-sm" onclick="downloadBackup()">📥 دانلود پشتیبان کامل (JSON)</button>
+                    <button class="btn btn-outline btn-sm" onclick="downloadBackupCsv()">📊 خروجی اکسل (CSV)</button>
                     <label class="btn btn-outline btn-sm" style="cursor:pointer;">📤 بازیابی از فایل
                         <input type="file" id="restoreFile" accept=".json" style="display:none" onchange="uploadRestore(this)">
                     </label>
@@ -214,6 +215,34 @@ async function downloadBackup() {
         a.click();
         URL.revokeObjectURL(url);
         showToast('فایل پشتیبان دانلود شد', 'success');
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+function tableToCsv(rows) {
+    if (!rows || !rows.length) return '\uFEFF';
+    const cols = Object.keys(rows[0]);
+    let csv = '\uFEFF' + cols.join(',') + '\n';
+    rows.forEach(r => {
+        csv += cols.map(c => `"${String(r[c] ?? '').replace(/"/g, '""')}"`).join(',') + '\n';
+    });
+    return csv;
+}
+function downloadCsvFile(csv, filename) {
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = filename;
+    a.click();
+}
+async function downloadBackupCsv() {
+    try {
+        const data = await apiGet('/api/admin/backup');
+        const today = new Date().toISOString().slice(0, 10);
+        ['companies', 'offers', 'purchase_requests', 'service_requests'].forEach(table => {
+            if (data.tables[table] && data.tables[table].length) {
+                downloadCsvFile(tableToCsv(data.tables[table]), `${table}-${today}.csv`);
+            }
+        });
+        showToast('فایل‌های CSV دانلود شدند (هر جدول یک فایل)', 'success');
     } catch (e) { showToast(e.message, 'error'); }
 }
 
