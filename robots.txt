@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://tolid-markazi.salmabadimohamad.workers.dev/sitemap.xml
