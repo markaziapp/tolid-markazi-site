@@ -33,16 +33,16 @@ function applyLang(lang) {
 }
 
 window.addEventListener('DOMContentLoaded', function () {
-    const headerSlot = document.querySelector('.topbar');
-    if (!headerSlot) return;
+    const actionsSlot = document.querySelector('.topbar .header-actions');
+    if (!actionsSlot) return;
     const btn = document.createElement('button');
     btn.id = 'langToggle';
-    btn.className = 'header-toggle-btn theme-toggle-inline lang-toggle-inline';
+    btn.className = 'header-toggle-btn lang-toggle-inline';
     btn.title = 'FA / EN';
     btn.onclick = function () {
         const current = localStorage.getItem('lang') || 'fa';
         applyLang(current === 'fa' ? 'en' : 'fa');
     };
-    headerSlot.appendChild(btn);
+    actionsSlot.insertBefore(btn, actionsSlot.firstChild);
     applyLang(localStorage.getItem('lang') || 'fa');
 });

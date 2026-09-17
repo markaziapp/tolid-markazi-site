@@ -403,6 +403,7 @@ async function loadDashboard() {
         loadFavorites();
         loadMyTenders();
         loadMyJobs();
+        resumePendingChat();
         if (location.hash === '#support') {
             setTimeout(() => document.getElementById('supportMessages')?.scrollIntoView({ behavior: 'smooth' }), 300);
         }
@@ -860,6 +861,18 @@ async function openNotification(id, link) {
 // چت داخلی
 // ------------------------------------------------------------------
 let activeConversationId = null, chatPollInterval = null, myCompanyId = null;
+
+async function resumePendingChat() {
+    const companyId = new URLSearchParams(location.search).get('startChat');
+    if (!companyId) return;
+    history.replaceState(null, '', location.pathname + location.hash);
+    try {
+        const data = await apiSend('POST', '/api/chat/start', { companyId: parseInt(companyId) }, true);
+        document.getElementById('chatCard')?.scrollIntoView({ behavior: 'smooth' });
+        await loadConversations();
+        openChatThread(data.conversationId);
+    } catch (e) { showToast(e.message, 'error'); }
+}
 
 async function loadConversations() {
     try {

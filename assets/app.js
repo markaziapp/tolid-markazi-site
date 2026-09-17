@@ -30,7 +30,11 @@ function requireLogin(actionLabel) {
 
 // شروع گفتگوی مستقیم با یک شرکت از روی کارت پروفایل عمومی
 async function startChatWith(companyId) {
-    if (!requireLogin('شروع گفتگو')) return;
+    if (!isLoggedIn()) {
+        showToast('برای شروع گفتگو ابتدا باید ثبت‌نام یا وارد شوید', 'error');
+        setTimeout(() => { location.href = 'company.html?startChat=' + companyId; }, 900);
+        return;
+    }
     try {
         const data = await apiPost('/api/chat/start', { companyId });
         location.href = `company.html#chat-${data.conversationId}`;
@@ -656,8 +660,8 @@ function debouncedSearch(val) {
 // فرم‌های چندمرحله‌ای
 // ------------------------------------------------------------------
 function spGoStep(step) {
-    if (step === 2 && (!document.getElementById('spTitle').value.trim() || !document.getElementById('spCompany').value.trim() || !document.getElementById('spPhone').value.trim())) {
-        showToast('عنوان محصول، نام شرکت و شماره تماس را وارد کنید', 'error'); return;
+    if (step === 2 && !document.getElementById('spTitle').value.trim()) {
+        showToast('عنوان محصول را وارد کنید', 'error'); return;
     }
     ['spStep1','spStep2'].forEach((id,i) => document.getElementById(id).classList.toggle('active', i === step-1));
     ['spDot1','spDot2'].forEach((id,i) => document.getElementById(id).classList.toggle('active', i === step-1));
@@ -936,6 +940,8 @@ async function openCompareModal() {
     document.getElementById('detailsTitle').textContent = 'مقایسهٔ محصولات';
     document.getElementById('detailsBody').innerHTML = html;
     openModal('detailsModal');
+    setCompareList([]);
+    document.querySelectorAll('.compare-check').forEach(c => c.checked = false);
 }
 
 window.addEventListener('DOMContentLoaded', () => { renderCompareBar(); });

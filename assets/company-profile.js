@@ -66,7 +66,11 @@ async function renderAuthArea() {
     el.innerHTML = `<button class="btn btn-outline btn-sm" style="background:transparent;color:#fff;border-color:rgba(255,255,255,0.4);" onclick="location.href='company.html'">پنل من</button>`;
 }
 async function startChatWith(companyId) {
-    if (!requireLogin('شروع گفتگو')) return;
+    if (!isLoggedIn()) {
+        showToast('برای شروع گفتگو ابتدا باید ثبت‌نام یا وارد شوید', 'error');
+        setTimeout(() => { location.href = 'company.html?startChat=' + companyId; }, 900);
+        return;
+    }
     try {
         const data = await apiPost('/api/chat/start', { companyId });
         location.href = `company.html#chat-${data.conversationId}`;
