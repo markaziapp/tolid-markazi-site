@@ -453,7 +453,10 @@ async function loadDashboard() {
                 if (chatHeading) chatHeading.style.display = '';
                 loadConversations().then(() => {
                     const m = location.hash.match(/^#chat-(\d+)/);
-                    if (m) openChatThread(parseInt(m[1]));
+                    if (m) {
+                        openChatThread(parseInt(m[1]));
+                        setTimeout(() => document.getElementById('chatCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
+                    }
                 });
             }).catch(() => {
                 // اگر تنظیمات در دسترس نبود، فرض را بر فعال‌بودن چت می‌گذاریم
@@ -662,6 +665,19 @@ function checkNewActivity(data) {
         notice.innerHTML = '';
     }
     if (newest) localStorage.setItem(lastSeenKey, newest);
+}
+
+async function saveLocationOnly() {
+    const lat = document.getElementById('companyLat').value;
+    const lng = document.getElementById('companyLng').value;
+    if (!lat || !lng) { showToast('اول روی نقشه کلیک کنید یا «موقعیت من» را بزنید', 'error'); return; }
+    const county = document.getElementById('editCounty').value;
+    try {
+        await apiSend('PUT', '/api/company/profile', {
+            latitude: parseFloat(lat), longitude: parseFloat(lng), county: county || undefined,
+        }, true);
+        showToast('موقعیت مکانی ذخیره شد ✅', 'success');
+    } catch (e) { showToast(e.message, 'error'); }
 }
 
 async function saveProfileEdit() {
