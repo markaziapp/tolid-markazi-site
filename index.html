@@ -51,6 +51,7 @@
     <button class="tab-btn" data-tab="showcase" onclick="switchTab('showcase')">🏆 نمایشگاه برتر</button>
     <button class="tab-btn" data-tab="tenders" onclick="switchTab('tenders')">📋 مناقصه‌ها</button>
     <button class="tab-btn" data-tab="news" onclick="switchTab('news')">📰 اخبار</button>
+    <button class="tab-btn" data-tab="jobs" onclick="switchTab('jobs')">💼 استخدام</button>
     <button class="tab-btn" data-tab="tools" onclick="switchTab('tools')">فایل‌ها</button>
 </nav>
 
@@ -171,6 +172,15 @@
     <section id="tab-news" class="tab-page" style="display:none;">
         <h2 class="section-title">📰 اخبار و مقالات صنعتی استان</h2>
         <div id="newsList"><div class="loading">در حال بارگذاری...</div></div>
+    </section>
+
+    <!-- ===================== آگهی استخدام ===================== -->
+    <section id="tab-jobs" class="tab-page" style="display:none;">
+        <div class="section-head-row">
+            <h2 class="section-title">💼 آگهی استخدام واحدهای تولیدی</h2>
+            <button class="btn btn-gold btn-sm" onclick="requireLogin('ثبت آگهی استخدام') && openModal('jobModal')">+ ثبت آگهی استخدام</button>
+        </div>
+        <div id="jobsList"><div class="loading">در حال بارگذاری...</div></div>
     </section>
 
     <!-- ===================== فایل‌ها ===================== -->
@@ -357,6 +367,26 @@
             <div class="form-group"><label>مبلغ پیشنهادی *</label><input type="text" id="bidPrice" placeholder="مثال: ۴۸۰ میلیون تومان"></div>
             <div class="form-group"><label>توضیحات پیشنهاد</label><textarea id="bidMessage" rows="2"></textarea></div>
             <button class="btn btn-gold" style="width:100%;" onclick="submitTenderBid()">ارسال پیشنهاد</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== مودال: ثبت آگهی استخدام ===================== -->
+<div class="modal-overlay" id="jobModal">
+    <div class="modal">
+        <div class="modal-header"><h3>ثبت آگهی استخدام</h3><button class="modal-close" onclick="closeModal('jobModal')">&times;</button></div>
+        <div class="modal-body">
+            <div class="form-group"><label>عنوان شغلی *</label><input type="text" id="jbTitle" placeholder="مثال: اپراتور دستگاه CNC"></div>
+            <div class="form-group"><label>شرح شغل و شرایط</label><textarea id="jbDescription" rows="3"></textarea></div>
+            <div class="form-row">
+                <div class="form-group"><label>دسته‌بندی</label><select id="jbCategory"></select></div>
+                <div class="form-group"><label>شهرستان</label><select id="jbCounty"></select></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>حقوق تقریبی (اختیاری)</label><input type="text" id="jbSalary" placeholder="مثال: توافقی / از ۱۵ میلیون تومان"></div>
+                <div class="form-group"><label>شمارهٔ تماس</label><input type="tel" id="jbPhone" placeholder="09xxxxxxxxx"></div>
+            </div>
+            <button class="btn btn-gold" style="width:100%;" onclick="submitJob()">ثبت آگهی</button>
         </div>
     </div>
 </div>

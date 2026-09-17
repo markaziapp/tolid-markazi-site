@@ -14,6 +14,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="assets/config.js?v=2"></script>
+<script defer src="assets/pwa.js"></script>
 <style>
 /* ===== صفحه‌ی انتخاب ===== */
 .auth-entry {
@@ -342,6 +343,7 @@
         <a href="invoice.html" target="_blank" class="btn btn-outline btn-sm" style="margin-bottom:1rem; margin-right:0.5rem;">📝 پیش‌فاکتور ساز</a>
         <a id="certificateBtn" href="#" target="_blank" class="btn btn-outline btn-sm" style="display:none; margin-bottom:1rem; margin-right:0.5rem;">🎖️ گواهی تأیید</a>
         <button class="btn btn-outline btn-sm" style="margin-bottom:1rem; margin-right:0.5rem;" onclick="exportMyStatsCsv()">📊 دانلود آمار من (Excel)</button>
+        <button id="pushEnableBtn" class="btn btn-gold btn-sm" style="margin-bottom:1rem; margin-right:0.5rem;" onclick="enablePushNotifications()">🔔 فعال‌سازی اعلان فوری</button>
 
         <h3 class="section-title" style="font-size:1.1rem;">⭐ علاقه‌مندی‌های من</h3>
         <div id="favoritesList" class="card" style="padding:1rem; margin-bottom:1rem;"><div class="empty-state">در حال بارگذاری...</div></div>
@@ -351,6 +353,9 @@
 
         <h3 class="section-title" style="font-size:1.1rem;">📋 مناقصه‌های من</h3>
         <div id="myTendersList" class="card" style="padding:1rem; margin-bottom:1rem;"><div class="empty-state">در حال بارگذاری...</div></div>
+
+        <h3 class="section-title" style="font-size:1.1rem;">💼 آگهی‌های استخدامی من</h3>
+        <div id="myJobsList" class="card" style="padding:1rem; margin-bottom:1rem;"><div class="empty-state">در حال بارگذاری...</div></div>
         <div id="completeProfileNotice"></div>
 
         <div class="stat-cards" id="statCards"></div>

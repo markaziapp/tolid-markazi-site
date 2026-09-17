@@ -68,3 +68,35 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+// نمایش اعلان فوری وقتی پیام Push از سرور می‌رسد (حتی اگر سایت بسته باشد)
+self.addEventListener('push', (event) => {
+  let data = { title: 'همتا صنعت مرکزی', body: 'اعلان جدید', link: '/' };
+  try { data = { ...data, ...event.data.json() }; } catch (e) {}
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: './assets/icons/icon-192.png',
+      badge: './assets/icons/icon-192.png',
+      dir: 'rtl',
+      data: { link: data.link || '/' },
+    })
+  );
+});
+
+// کلیک روی اعلان: باز کردن یا فوکوس‌کردن پنل
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const link = event.notification.data?.link || '/';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes('company.html') && 'focus' in client) {
+          client.navigate('./company.html' + (link.startsWith('#') ? link : ''));
+          return client.focus();
+        }
+      }
+      return clients.openWindow('./company.html' + (link.startsWith('#') ? link : ''));
+    })
+  );
+});
