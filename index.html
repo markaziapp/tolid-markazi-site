@@ -15,6 +15,7 @@
 <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css">
 <link rel="stylesheet" href="assets/styles.css?v=2">
 <script src="assets/theme.js?v=2"></script>
+<script src="assets/lang.js?v=2"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <script src="assets/config.js?v=2"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -40,14 +41,16 @@
 </header>
 
 <nav class="tabs container" id="tabsRow">
-    <button class="tab-btn active" data-tab="home" onclick="switchTab('home')">خانه</button>
-    <button class="tab-btn" data-tab="offers" onclick="switchTab('offers')">عرضه محصولات</button>
-    <button class="tab-btn" data-tab="requests" onclick="switchTab('requests')">درخواست خرید</button>
-    <button class="tab-btn" data-tab="services" onclick="switchTab('services')">درخواست خدمات</button>
-    <button class="tab-btn" data-tab="companies" onclick="switchTab('companies')">واحدهای تولیدی</button>
+    <button class="tab-btn active" data-tab="home" data-i18n="tab_home" onclick="switchTab('home')">خانه</button>
+    <button class="tab-btn" data-tab="offers" data-i18n="tab_offers" onclick="switchTab('offers')">عرضه محصولات</button>
+    <button class="tab-btn" data-tab="requests" data-i18n="tab_requests" onclick="switchTab('requests')">درخواست خرید</button>
+    <button class="tab-btn" data-tab="services" data-i18n="tab_services" onclick="switchTab('services')">درخواست خدمات</button>
+    <button class="tab-btn" data-tab="companies" data-i18n="tab_companies" onclick="switchTab('companies')">واحدهای تولیدی</button>
     <button class="tab-btn" data-tab="map" onclick="switchTab('map')">🗺️ نقشه</button>
     <button class="tab-btn" data-tab="events" onclick="switchTab('events')">📅 رویدادها</button>
     <button class="tab-btn" data-tab="showcase" onclick="switchTab('showcase')">🏆 نمایشگاه برتر</button>
+    <button class="tab-btn" data-tab="tenders" onclick="switchTab('tenders')">📋 مناقصه‌ها</button>
+    <button class="tab-btn" data-tab="news" onclick="switchTab('news')">📰 اخبار</button>
     <button class="tab-btn" data-tab="tools" onclick="switchTab('tools')">فایل‌ها</button>
 </nav>
 
@@ -56,21 +59,21 @@
     <!-- ===================== خانه ===================== -->
     <section id="tab-home" class="tab-page">
         <div style="text-align:center; padding:1.5rem 0 0.5rem;">
-            <h1 style="font-size:2rem; font-weight:800; color:var(--primary);">همتا صنعت  </h1>
-            <p style="color:var(--text-light); margin-top:0.4rem;">خرید، فروش و حل نیازهای تولید در یک جا — رایگان</p>
+            <h1 style="font-size:2rem; font-weight:800; color:var(--primary);" data-i18n="hero_title">همتا صنعت  </h1>
+            <p style="color:var(--text-light); margin-top:0.4rem;" data-i18n="hero_sub">خرید، فروش و حل نیازهای تولید در یک جا — رایگان</p>
             <div id="dailyTicker" style="font-size:0.8rem; color:var(--primary); font-weight:700; margin-top:0.5rem; min-height:1.2em;"></div>
             <div class="search-box" style="max-width:480px; margin:1.1rem auto 0.5rem;">
                 <span class="search-icon">🔍</span>
-                <input type="text" id="homeSearch" placeholder="جستجوی محصول، شرکت یا نیاز صنعتی..." oninput="debouncedSearch(this.value)">
+                <input type="text" id="homeSearch" data-i18n-placeholder="search_placeholder" placeholder="جستجوی محصول، شرکت یا نیاز صنعتی..." oninput="debouncedSearch(this.value)">
             </div>
         </div>
 
         <div id="adSlotHome"></div>
 
         <div style="display:flex; gap:0.6rem; flex-wrap:wrap; justify-content:center; margin:1rem 0 0.5rem;">
-            <button class="btn btn-gold" onclick="openModalAuth('supplyModal', 'ثبت آگهی')">+ عرضه محصول</button>
-            <button class="btn btn-primary" onclick="openModalAuth('purchaseRequestModal', 'ثبت درخواست خرید')">+ درخواست خرید</button>
-            <button class="btn btn-outline" onclick="openModalAuth('serviceRequestModal', 'ثبت درخواست خدمات')">+ درخواست خدمات</button>
+            <button class="btn btn-gold" data-i18n="btn_supply" onclick="openModalAuth('supplyModal', 'ثبت آگهی')">+ عرضه محصول</button>
+            <button class="btn btn-primary" data-i18n="btn_purchase" onclick="openModalAuth('purchaseRequestModal', 'ثبت درخواست خرید')">+ درخواست خرید</button>
+            <button class="btn btn-outline" data-i18n="btn_service" onclick="openModalAuth('serviceRequestModal', 'ثبت درخواست خدمات')">+ درخواست خدمات</button>
         </div>
 
         <div id="topWeeklySection" style="display:none;">
@@ -153,6 +156,21 @@
         <h2 class="section-title">🏆 نمایشگاه محصولات برتر استان</h2>
         <p style="font-size:0.82rem; color:var(--text-light); margin-bottom:0.7rem;">منتخب مدیریت از میان بهترین آگهی‌های ثبت‌شده</p>
         <div id="showcaseList" class="cards-grid"><div class="loading">در حال بارگذاری...</div></div>
+    </section>
+
+    <!-- ===================== مناقصه‌ها ===================== -->
+    <section id="tab-tenders" class="tab-page" style="display:none;">
+        <div class="section-head-row">
+            <h2 class="section-title">📋 مناقصه و درخواست تأمین بزرگ</h2>
+            <button class="btn btn-gold btn-sm" onclick="requireLogin('ثبت مناقصه') && openModal('tenderModal')">+ ثبت مناقصه</button>
+        </div>
+        <div id="tendersList"><div class="loading">در حال بارگذاری...</div></div>
+    </section>
+
+    <!-- ===================== اخبار ===================== -->
+    <section id="tab-news" class="tab-page" style="display:none;">
+        <h2 class="section-title">📰 اخبار و مقالات صنعتی استان</h2>
+        <div id="newsList"><div class="loading">در حال بارگذاری...</div></div>
     </section>
 
     <!-- ===================== فایل‌ها ===================== -->
@@ -306,6 +324,39 @@
                 <div class="form-group"><label>شماره تماس *</label><input type="tel" id="adPhone" placeholder="09xxxxxxxxx"></div>
             </div>
             <button class="btn btn-gold" style="width:100%;" onclick="submitAdRequest()">ثبت درخواست تبلیغ</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== مودال: ثبت مناقصه ===================== -->
+<div class="modal-overlay" id="tenderModal">
+    <div class="modal">
+        <div class="modal-header"><h3>ثبت مناقصه / درخواست تأمین بزرگ</h3><button class="modal-close" onclick="closeModal('tenderModal')">&times;</button></div>
+        <div class="modal-body">
+            <div class="form-group"><label>عنوان مناقصه *</label><input type="text" id="tdTitle" placeholder="مثال: تأمین ۵۰ تن ورق فولادی"></div>
+            <div class="form-group"><label>توضیحات و مشخصات فنی</label><textarea id="tdDescription" rows="3"></textarea></div>
+            <div class="form-row">
+                <div class="form-group"><label>دسته‌بندی</label><select id="tdCategory"></select></div>
+                <div class="form-group"><label>شهرستان</label><select id="tdCounty"></select></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>بودجهٔ تقریبی (اختیاری)</label><input type="text" id="tdBudget" placeholder="مثال: تا ۵۰۰ میلیون تومان"></div>
+                <div class="form-group"><label>مهلت ارسال پیشنهاد *</label><input type="date" id="tdDeadline"></div>
+            </div>
+            <button class="btn btn-gold" style="width:100%;" onclick="submitTender()">ثبت مناقصه</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== مودال: ثبت پیشنهاد قیمت ===================== -->
+<div class="modal-overlay" id="tenderBidModal">
+    <div class="modal">
+        <div class="modal-header"><h3>ثبت پیشنهاد قیمت</h3><button class="modal-close" onclick="closeModal('tenderBidModal')">&times;</button></div>
+        <div class="modal-body">
+            <input type="hidden" id="bidTenderId">
+            <div class="form-group"><label>مبلغ پیشنهادی *</label><input type="text" id="bidPrice" placeholder="مثال: ۴۸۰ میلیون تومان"></div>
+            <div class="form-group"><label>توضیحات پیشنهاد</label><textarea id="bidMessage" rows="2"></textarea></div>
+            <button class="btn btn-gold" style="width:100%;" onclick="submitTenderBid()">ارسال پیشنهاد</button>
         </div>
     </div>
 </div>
