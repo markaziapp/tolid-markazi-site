@@ -688,8 +688,8 @@ async function saveProfileEdit() {
         const lat = document.getElementById('companyLat').value;
         const lng = document.getElementById('companyLng').value;
         if (lat && lng) { body.latitude = parseFloat(lat); body.longitude = parseFloat(lng); }
-        await apiSend('PUT', '/api/company/profile', body, true);
-        showToast('تغییرات برای تایید مدیر ارسال شد', 'success');
+        const res = await apiSend('PUT', '/api/company/profile', body, true);
+        showToast(res.message || 'ذخیره شد', 'success');
         loadDashboard();
     } catch (e) { showToast(e.message, 'error'); }
 }
