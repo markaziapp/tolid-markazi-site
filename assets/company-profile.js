@@ -133,6 +133,7 @@ function renderProfile(c) {
     `;
     document.getElementById('pChatBtn').onclick = () => startChatWith(c.id);
     document.getElementById('pCatalogBtn').href = `catalog.html?id=${c.id}`;
+    injectStructuredData(c);
     if (c.verified) {
         const certBtn = document.getElementById('pCertBtn');
         certBtn.href = `certificate.html?id=${c.id}`;
@@ -140,6 +141,25 @@ function renderProfile(c) {
     }
     document.title = `${c.name} | همتا صنعت`;
     renderAuthArea();
+}
+
+function injectStructuredData(c) {
+    const data = {
+        '@context': 'https://schema.org',
+        '@type': 'LocalBusiness',
+        name: c.name,
+        address: { '@type': 'PostalAddress', addressRegion: 'استان مرکزی', addressLocality: c.county || '', addressCountry: 'IR' },
+        telephone: c.phone,
+        description: c.products || '',
+        url: location.href,
+    };
+    if (c.rating_count > 0) {
+        data.aggregateRating = { '@type': 'AggregateRating', ratingValue: c.rating_avg, reviewCount: c.rating_count };
+    }
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.textContent = JSON.stringify(data);
+    document.head.appendChild(script);
 }
 
 function toggleQr() {
