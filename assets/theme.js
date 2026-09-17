@@ -8,6 +8,7 @@ window.addEventListener('DOMContentLoaded', function () {
     if (document.getElementById('themeToggle')) return;
     const btn = document.createElement('button');
     btn.id = 'themeToggle';
+    btn.className = 'header-toggle-btn';
     btn.title = 'حالت تاریک/روشن';
     const headerSlot = document.querySelector('.topbar');
     if (headerSlot) {

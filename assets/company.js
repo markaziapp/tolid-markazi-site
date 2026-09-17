@@ -401,6 +401,7 @@ async function loadDashboard() {
         loadSupportThread();
         loadReferralInfo();
         loadFavorites();
+        loadMyTenders();
         if (location.hash === '#support') {
             setTimeout(() => document.getElementById('supportMessages')?.scrollIntoView({ behavior: 'smooth' }), 300);
         }
@@ -856,6 +857,35 @@ function renderContactsBook(conversations) {
             <a href="tel:${esc(c.other_phone)}" class="btn btn-outline btn-sm">📞 تماس</a>
         </div>
     `).join('');
+}
+
+async function loadMyTenders() {
+    const box = document.getElementById('myTendersList');
+    try {
+        const tenders = await apiGet('/api/company/my-tenders', true);
+        if (!tenders.length) { box.innerHTML = '<div class="empty-state">هنوز مناقصه‌ای ثبت نکرده‌اید — از تب «مناقصه‌ها» در سایت اصلی ثبت کنید</div>'; return; }
+        box.innerHTML = tenders.map(t => `
+            <div style="padding:0.6rem 0; border-bottom:1px solid #f0f0f0;">
+                <div style="font-weight:700; font-size:0.88rem;">${esc(t.title)}</div>
+                <div style="font-size:0.78rem; color:var(--text-light); margin:0.2rem 0;">مهلت: ${esc(toPersianDate(t.deadline))} • ${t.bid_count} پیشنهاد</div>
+                ${t.bid_count > 0 ? `<button class="btn btn-outline btn-sm" onclick="viewTenderBids(${t.id})">مشاهدهٔ پیشنهادها</button>` : ''}
+                <div id="bids-${t.id}" style="margin-top:0.5rem;"></div>
+            </div>
+        `).join('');
+    } catch (e) { box.innerHTML = '<div class="empty-state">خطا در بارگذاری</div>'; }
+}
+async function viewTenderBids(tenderId) {
+    const box = document.getElementById(`bids-${tenderId}`);
+    box.innerHTML = 'در حال بارگذاری...';
+    try {
+        const bids = await apiGet(`/api/tenders/${tenderId}/bids`, true);
+        box.innerHTML = bids.map(b => `
+            <div style="background:#f7f8fa; border-radius:8px; padding:0.5rem 0.7rem; margin-top:0.4rem; font-size:0.82rem;">
+                <b>${esc(b.company_name)}</b> (${esc(b.company_phone)}) — ${esc(b.price)}
+                ${b.message ? `<div style="color:var(--text-light); margin-top:0.2rem;">${esc(b.message)}</div>` : ''}
+            </div>
+        `).join('') || '<div class="empty-state">پیشنهادی نیست</div>';
+    } catch (e) { box.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
 }
 
 async function loadFavorites() {

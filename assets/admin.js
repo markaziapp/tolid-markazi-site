@@ -126,7 +126,7 @@ function switchAdminTab(tab) {
     const loaders = {
         overview: loadOverview, pending: loadPending, companies: loadCompanies, offers: loadOffers,
         requests: loadRequests, rfqs: loadRfqs, services: loadServices, ads: loadAds, messages: loadMessages,
-        files: loadFiles, lookups: loadLookups, chat: loadAdminChat, sms: loadAdminSms, support: loadAdminSupport, events: loadAdminEvents,
+        files: loadFiles, lookups: loadLookups, chat: loadAdminChat, sms: loadAdminSms, support: loadAdminSupport, events: loadAdminEvents, content: loadAdminContent,
     };
     loaders[tab] && loaders[tab]();
 }
@@ -462,6 +462,62 @@ async function sendAdminSupportMessage() {
 // ------------------------------------------------------------------
 // تقویم رویدادهای صنعتی استان
 // ------------------------------------------------------------------
+// ------------------------------------------------------------------
+// اخبار و مناقصه‌ها (مدیریت محتوا)
+// ------------------------------------------------------------------
+async function loadAdminContent() {
+    const el = document.getElementById('admin-content');
+    el.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
+    try {
+        const [news, tenders] = await Promise.all([apiGet('/api/admin/news'), apiGet('/api/admin/tenders')]);
+        el.innerHTML = `
+            <h2 class="section-title">📰 افزودن خبر جدید</h2>
+            <div class="card" style="padding:1rem; margin-bottom:1rem;">
+                <input type="text" id="newsTitle" placeholder="عنوان خبر" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border); margin-bottom:0.6rem;">
+                <textarea id="newsBody" rows="3" placeholder="متن خبر" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border); margin-bottom:0.6rem; font-family:inherit;"></textarea>
+                <input type="text" id="newsImage" placeholder="لینک تصویر (اختیاری)" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border);">
+                <button class="btn btn-primary" style="width:100%; margin-top:0.6rem;" onclick="addNews()">انتشار خبر</button>
+            </div>
+            <table class="admin-table">
+                <tr><th>عنوان</th><th>تاریخ</th><th>وضعیت</th><th>عملیات</th></tr>
+                ${news.map(n => `<tr>
+                    <td>${esc(n.title)}</td><td>${esc(toPersianDate(n.created_at))}</td>
+                    <td>${n.published ? 'منتشرشده' : 'پیش‌نویس'}</td>
+                    <td><button class="btn btn-sm btn-danger" onclick="delNews(${n.id})">حذف</button></td>
+                </tr>`).join('') || '<tr><td colspan="4">خبری ثبت نشده</td></tr>'}
+            </table>
+
+            <h2 class="section-title" style="margin-top:1.2rem;">📋 مناقصه‌های ثبت‌شده</h2>
+            <table class="admin-table">
+                <tr><th>عنوان</th><th>شرکت</th><th>مهلت</th><th>پیشنهادها</th><th>عملیات</th></tr>
+                ${tenders.map(t => `<tr>
+                    <td>${esc(t.title)}</td><td>${esc(t.company_name)}</td>
+                    <td>${esc(toPersianDate(t.deadline))}</td><td>${t.bid_count || 0}</td>
+                    <td><button class="btn btn-sm btn-danger" onclick="delTender(${t.id})">حذف</button></td>
+                </tr>`).join('') || '<tr><td colspan="5">مناقصه‌ای ثبت نشده</td></tr>'}
+            </table>
+        `;
+    } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
+}
+async function addNews() {
+    const title = document.getElementById('newsTitle').value.trim();
+    const body = document.getElementById('newsBody').value.trim();
+    if (!title || !body) { showToast('عنوان و متن الزامی است', 'error'); return; }
+    try {
+        await apiSend('POST', '/api/admin/news', { title, body, imageUrl: document.getElementById('newsImage').value.trim() });
+        showToast('خبر منتشر شد', 'success');
+        loadAdminContent();
+    } catch (e) { showToast(e.message, 'error'); }
+}
+async function delNews(id) {
+    try { await apiSend('DELETE', `/api/admin/news/${id}`); loadAdminContent(); }
+    catch (e) { showToast(e.message, 'error'); }
+}
+async function delTender(id) {
+    try { await apiSend('DELETE', `/api/admin/tenders/${id}`); loadAdminContent(); }
+    catch (e) { showToast(e.message, 'error'); }
+}
+
 async function loadAdminEvents() {
     const el = document.getElementById('admin-events');
     el.innerHTML = '<div class="loading">در حال بارگذاری...</div>';

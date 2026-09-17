@@ -407,15 +407,16 @@ html { scroll-behavior: smooth; }
 [data-theme="dark"] .chat-bubble.theirs { background: var(--surface); }
 [data-theme="dark"] .cust-box, [data-theme="dark"] .note { background: #1c2738; }
 
-/* دکمهٔ سوییچ حالت تاریک/روشن — داخل هدر، گوشهٔ سمت چپ، بدون تداخل با محتوا */
-#themeToggle {
+/* دکمهٔ سوییچ حالت تاریک/روشن و زبان — داخل هدر، گوشهٔ سمت چپ، بدون تداخل با محتوا */
+.header-toggle-btn {
     width: 32px; height: 32px; border-radius: 50%; border: none; cursor: pointer;
     background: rgba(255,255,255,0.12); color: #fff; font-size: 1rem;
     display: flex; align-items: center; justify-content: center;
     transition: var(--transition);
 }
-#themeToggle:hover { background: rgba(255,255,255,0.22); transform: scale(1.08); }
-#themeToggle.theme-toggle-inline {
+.header-toggle-btn:hover { background: rgba(255,255,255,0.22); transform: scale(1.08); }
+.header-toggle-btn.theme-toggle-inline {
     position: absolute; top: 50%; left: 0.9rem; transform: translateY(-50%);
 }
-#themeToggle.theme-toggle-inline:hover { transform: translateY(-50%) scale(1.08); }
+.header-toggle-btn.theme-toggle-inline:hover { transform: translateY(-50%) scale(1.08); }
+.header-toggle-btn.lang-toggle-inline { left: 3.3rem; font-size: 0.72rem; font-weight: 800; }

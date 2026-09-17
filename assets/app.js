@@ -179,10 +179,78 @@ function switchTab(tab) {
     if (tab === 'map') loadFactoryMap();
     if (tab === 'events') loadEvents();
     if (tab === 'showcase') loadShowcase();
+    if (tab === 'tenders') loadTenders();
+    if (tab === 'news') loadNews();
     if (tab === 'tools') loadFiles();
 }
 
 let factoryMapInstance = null, factoryMarkersLayer = null;
+async function loadTenders() {
+    const el = document.getElementById('tendersList');
+    try {
+        const tenders = await apiGet('/api/tenders');
+        if (!tenders.length) { el.innerHTML = emptyState('در حال حاضر مناقصهٔ بازی ثبت نشده'); return; }
+        el.innerHTML = tenders.map(t => `
+            <div class="card" style="padding:1rem; margin-bottom:0.8rem;">
+                <div style="font-weight:800; color:var(--primary); font-size:0.98rem;">${esc(t.title)}</div>
+                <div style="font-size:0.8rem; color:var(--text-light); margin-top:0.2rem;">${esc(t.company_name)} • ${esc(t.county||'-')} ${t.category ? '• ' + esc(t.category) : ''}</div>
+                ${t.description ? `<p style="font-size:0.85rem; margin-top:0.5rem;">${esc(t.description)}</p>` : ''}
+                <div style="font-size:0.8rem; margin-top:0.5rem; color:#b8892f;">${t.budget_range ? '💰 ' + esc(t.budget_range) + ' • ' : ''}⏳ مهلت: ${esc(toPersianDate(t.deadline))} • ${t.bid_count} پیشنهاد دریافتی</div>
+                ${getMyCompanyId() === t.company_id ? '' : `<button class="btn btn-primary btn-sm" style="width:100%; margin-top:0.6rem;" onclick="openTenderBid(${t.id})">ارسال پیشنهاد قیمت</button>`}
+            </div>
+        `).join('');
+    } catch (e) { el.innerHTML = emptyState('خطا در بارگذاری مناقصه‌ها'); }
+}
+async function submitTender() {
+    if (!requireLogin('ثبت مناقصه')) return;
+    const title = document.getElementById('tdTitle').value.trim();
+    const deadline = document.getElementById('tdDeadline').value;
+    if (!title || !deadline) { showToast('عنوان و مهلت الزامی است', 'error'); return; }
+    try {
+        await apiSend('POST', '/api/tenders', {
+            title, deadline,
+            description: document.getElementById('tdDescription').value.trim(),
+            category: document.getElementById('tdCategory').value,
+            county: document.getElementById('tdCounty').value,
+            budgetRange: document.getElementById('tdBudget').value.trim(),
+        }, true);
+        showToast('مناقصه ثبت شد', 'success');
+        closeModal('tenderModal');
+        loadTenders();
+    } catch (e) { showToast(e.message, 'error'); }
+}
+function openTenderBid(tenderId) {
+    if (!requireLogin('ثبت پیشنهاد')) return;
+    document.getElementById('bidTenderId').value = tenderId;
+    openModal('tenderBidModal');
+}
+async function submitTenderBid() {
+    const tenderId = document.getElementById('bidTenderId').value;
+    const price = document.getElementById('bidPrice').value.trim();
+    if (!price) { showToast('مبلغ پیشنهادی را وارد کنید', 'error'); return; }
+    try {
+        await apiSend('POST', `/api/tenders/${tenderId}/bids`, { price, message: document.getElementById('bidMessage').value.trim() }, true);
+        showToast('پیشنهاد شما ثبت شد', 'success');
+        closeModal('tenderBidModal');
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function loadNews() {
+    const el = document.getElementById('newsList');
+    try {
+        const items = await apiGet('/api/news');
+        if (!items.length) { el.innerHTML = emptyState('هنوز خبری منتشر نشده'); return; }
+        el.innerHTML = items.map(n => `
+            <div class="card" style="padding:1rem; margin-bottom:0.8rem;">
+                ${n.image_url ? `<img src="${esc(n.image_url)}" style="width:100%; border-radius:8px; margin-bottom:0.6rem; max-height:200px; object-fit:cover;">` : ''}
+                <div style="font-weight:800; color:var(--primary); font-size:1rem;">${esc(n.title)}</div>
+                <div style="font-size:0.75rem; color:var(--text-light); margin:0.2rem 0 0.5rem;">${esc(toPersianDate(n.created_at))}</div>
+                <p style="font-size:0.87rem; line-height:1.8;">${esc(n.body)}</p>
+            </div>
+        `).join('');
+    } catch (e) { el.innerHTML = emptyState('خطا در بارگذاری اخبار'); }
+}
+
 async function loadEvents() {
     const el = document.getElementById('eventsList');
     try {
@@ -251,19 +319,19 @@ function trackView(path) {
 async function loadLookups() {
     try {
         const [counties, categories] = await Promise.all([apiGet('/api/counties'), apiGet('/api/categories')]);
-        const countySelects = ['spCounty', 'prCounty', 'srCounty', 'offerCounty'];
+        const countySelects = ['spCounty', 'prCounty', 'srCounty', 'offerCounty', 'tdCounty'];
         countySelects.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
-            const keepFirst = el.id === 'offerCounty';
+            const keepFirst = id === 'offerCounty' || id === 'tdCounty';
             el.innerHTML = (keepFirst ? '<option value="">همه شهرستان‌ها</option>' : '') +
                 counties.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
         });
-        const catSelects = ['spCategory', 'offerCategory'];
+        const catSelects = ['spCategory', 'offerCategory', 'tdCategory'];
         catSelects.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
-            const keepFirst = el.id === 'offerCategory';
+            const keepFirst = id === 'offerCategory' || id === 'tdCategory';
             el.innerHTML = (keepFirst ? '<option value="">همه دسته‌ها</option>' : '') +
                 categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
         });
