@@ -181,10 +181,46 @@ function switchTab(tab) {
     if (tab === 'showcase') loadShowcase();
     if (tab === 'tenders') loadTenders();
     if (tab === 'news') loadNews();
+    if (tab === 'jobs') loadJobs();
     if (tab === 'tools') loadFiles();
 }
 
 let factoryMapInstance = null, factoryMarkersLayer = null;
+async function loadJobs() {
+    const el = document.getElementById('jobsList');
+    try {
+        const jobs = await apiGet('/api/jobs');
+        if (!jobs.length) { el.innerHTML = emptyState('در حال حاضر آگهی استخدامی ثبت نشده'); return; }
+        el.innerHTML = jobs.map(j => `
+            <div class="card" style="padding:1rem; margin-bottom:0.8rem;">
+                <div style="font-weight:800; color:var(--primary); font-size:0.98rem;">${esc(j.title)}</div>
+                <div style="font-size:0.8rem; color:var(--text-light); margin-top:0.2rem;">${esc(j.company_name)} • ${esc(j.county||'-')} ${j.category ? '• ' + esc(j.category) : ''}</div>
+                ${j.description ? `<p style="font-size:0.85rem; margin-top:0.5rem;">${esc(j.description)}</p>` : ''}
+                <div style="font-size:0.8rem; margin-top:0.5rem; color:#b8892f;">${j.salary_range ? '💰 ' + esc(j.salary_range) : ''}</div>
+                ${j.contact_phone ? `<a href="tel:${esc(j.contact_phone)}" class="btn btn-outline btn-sm" style="margin-top:0.5rem;">📞 ${esc(j.contact_phone)}</a>` : ''}
+            </div>
+        `).join('');
+    } catch (e) { el.innerHTML = emptyState('خطا در بارگذاری آگهی‌های استخدام'); }
+}
+async function submitJob() {
+    if (!requireLogin('ثبت آگهی استخدام')) return;
+    const title = document.getElementById('jbTitle').value.trim();
+    if (!title) { showToast('عنوان شغل الزامی است', 'error'); return; }
+    try {
+        await apiSend('POST', '/api/jobs', {
+            title,
+            description: document.getElementById('jbDescription').value.trim(),
+            category: document.getElementById('jbCategory').value,
+            county: document.getElementById('jbCounty').value,
+            salaryRange: document.getElementById('jbSalary').value.trim(),
+            contactPhone: document.getElementById('jbPhone').value.trim(),
+        }, true);
+        showToast('آگهی استخدام ثبت شد', 'success');
+        closeModal('jobModal');
+        loadJobs();
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
 async function loadTenders() {
     const el = document.getElementById('tendersList');
     try {
@@ -319,19 +355,19 @@ function trackView(path) {
 async function loadLookups() {
     try {
         const [counties, categories] = await Promise.all([apiGet('/api/counties'), apiGet('/api/categories')]);
-        const countySelects = ['spCounty', 'prCounty', 'srCounty', 'offerCounty', 'tdCounty'];
+        const countySelects = ['spCounty', 'prCounty', 'srCounty', 'offerCounty', 'tdCounty', 'jbCounty'];
         countySelects.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
-            const keepFirst = id === 'offerCounty' || id === 'tdCounty';
+            const keepFirst = id === 'offerCounty' || id === 'tdCounty' || id === 'jbCounty';
             el.innerHTML = (keepFirst ? '<option value="">همه شهرستان‌ها</option>' : '') +
                 counties.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
         });
-        const catSelects = ['spCategory', 'offerCategory', 'tdCategory'];
+        const catSelects = ['spCategory', 'offerCategory', 'tdCategory', 'jbCategory'];
         catSelects.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
-            const keepFirst = id === 'offerCategory' || id === 'tdCategory';
+            const keepFirst = id === 'offerCategory' || id === 'tdCategory' || id === 'jbCategory';
             el.innerHTML = (keepFirst ? '<option value="">همه دسته‌ها</option>' : '') +
                 categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
         });

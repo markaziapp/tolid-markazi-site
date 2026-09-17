@@ -402,6 +402,7 @@ async function loadDashboard() {
         loadReferralInfo();
         loadFavorites();
         loadMyTenders();
+        loadMyJobs();
         if (location.hash === '#support') {
             setTimeout(() => document.getElementById('supportMessages')?.scrollIntoView({ behavior: 'smooth' }), 300);
         }
@@ -747,6 +748,41 @@ async function loadReferralInfo() {
     } catch (e) { /* اگر نشد، این کارت را نمایش نده */ }
 }
 
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = atob(base64);
+    return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+}
+
+async function enablePushNotifications() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        showToast('مرورگر شما از اعلان فوری پشتیبانی نمی‌کند', 'error'); return;
+    }
+    try {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') { showToast('اجازهٔ اعلان داده نشد', 'error'); return; }
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(window.VAPID_PUBLIC_KEY),
+        });
+        await apiSend('POST', '/api/push/subscribe', sub.toJSON(), true);
+        showToast('اعلان فوری فعال شد ✅', 'success');
+        document.getElementById('pushEnableBtn').textContent = '🔔 اعلان فوری فعال است';
+    } catch (e) { showToast('فعال‌سازی ممکن نشد: ' + e.message, 'error'); }
+}
+
+async function checkPushStatus() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) document.getElementById('pushEnableBtn').textContent = '🔔 اعلان فوری فعال است';
+    } catch (e) {}
+}
+window.addEventListener('DOMContentLoaded', checkPushStatus);
+
 async function loadWeeklyDigest() {
     try {
         const d = await apiGet('/api/company/weekly-digest', true);
@@ -886,6 +922,27 @@ async function viewTenderBids(tenderId) {
             </div>
         `).join('') || '<div class="empty-state">پیشنهادی نیست</div>';
     } catch (e) { box.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
+}
+
+async function loadMyJobs() {
+    const box = document.getElementById('myJobsList');
+    try {
+        const jobs = await apiGet('/api/company/my-jobs', true);
+        if (!jobs.length) { box.innerHTML = '<div class="empty-state">هنوز آگهی استخدامی ثبت نکرده‌اید</div>'; return; }
+        box.innerHTML = jobs.map(j => `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:0.5rem 0; border-bottom:1px solid #f0f0f0;">
+                <div>
+                    <div style="font-weight:700; font-size:0.88rem;">${esc(j.title)}</div>
+                    <div style="font-size:0.78rem; color:var(--text-light);">${esc(toPersianDate(j.created_at))}</div>
+                </div>
+                <button class="btn btn-sm btn-danger" onclick="delJob(${j.id})">حذف</button>
+            </div>
+        `).join('');
+    } catch (e) { box.innerHTML = '<div class="empty-state">خطا در بارگذاری</div>'; }
+}
+async function delJob(id) {
+    try { await apiSend('DELETE', `/api/company/jobs/${id}`, null, true); loadMyJobs(); }
+    catch (e) { showToast(e.message, 'error'); }
 }
 
 async function loadFavorites() {

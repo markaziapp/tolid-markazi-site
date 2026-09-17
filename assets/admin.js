@@ -470,6 +470,7 @@ async function loadAdminContent() {
     el.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
     try {
         const [news, tenders] = await Promise.all([apiGet('/api/admin/news'), apiGet('/api/admin/tenders')]);
+        const jobs = await apiGet('/api/admin/jobs');
         el.innerHTML = `
             <h2 class="section-title">📰 افزودن خبر جدید</h2>
             <div class="card" style="padding:1rem; margin-bottom:1rem;">
@@ -496,6 +497,15 @@ async function loadAdminContent() {
                     <td><button class="btn btn-sm btn-danger" onclick="delTender(${t.id})">حذف</button></td>
                 </tr>`).join('') || '<tr><td colspan="5">مناقصه‌ای ثبت نشده</td></tr>'}
             </table>
+
+            <h2 class="section-title" style="margin-top:1.2rem;">💼 آگهی‌های استخدام</h2>
+            <table class="admin-table">
+                <tr><th>عنوان</th><th>شرکت</th><th>شهرستان</th><th>عملیات</th></tr>
+                ${jobs.map(j => `<tr>
+                    <td>${esc(j.title)}</td><td>${esc(j.company_name)}</td><td>${esc(j.county||'-')}</td>
+                    <td><button class="btn btn-sm btn-danger" onclick="delJobAdmin(${j.id})">حذف</button></td>
+                </tr>`).join('') || '<tr><td colspan="4">آگهی‌ای ثبت نشده</td></tr>'}
+            </table>
         `;
     } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
 }
@@ -515,6 +525,10 @@ async function delNews(id) {
 }
 async function delTender(id) {
     try { await apiSend('DELETE', `/api/admin/tenders/${id}`); loadAdminContent(); }
+    catch (e) { showToast(e.message, 'error'); }
+}
+async function delJobAdmin(id) {
+    try { await apiSend('DELETE', `/api/admin/jobs/${id}`); loadAdminContent(); }
     catch (e) { showToast(e.message, 'error'); }
 }
 
@@ -738,6 +752,7 @@ function renderCompaniesTable() {
                     <button class="btn btn-sm ${c.verified?'btn-outline':'btn-primary'}" onclick="toggleCompany(${c.id},'verified',${c.verified?0:1})">${c.verified?'لغو تأیید':'تأیید'}</button>
                     <button class="btn btn-sm ${c.active?'btn-danger':'btn-outline'}" onclick="toggleCompany(${c.id},'active',${c.active?0:1})">${c.active?'غیرفعال':'فعال'}</button>
                     <button class="btn btn-sm btn-outline" onclick="resetCompanyPassword(${c.id})">تنظیم رمز جدید</button>
+                    <button class="btn btn-sm btn-outline" onclick="testPush(${c.id})">🔔 تست پوش</button>
                 </td>
             </tr>`).join('') || '<tr><td colspan="7">نتیجه‌ای یافت نشد</td></tr>'}
         </table></div>`;
@@ -754,6 +769,12 @@ async function resetCompanyPassword(id) {
     try {
         await apiSend('POST', `/api/admin/companies/${id}/reset-password`, { newPassword: pw });
         showToast('رمز عبور تغییر کرد؛ آن را به کاربر اطلاع دهید', 'success');
+    } catch (e) { showToast(e.message, 'error'); }
+}
+async function testPush(companyId) {
+    try {
+        const res = await apiSend('POST', '/api/admin/push/test', { companyId });
+        showToast(`پیام آزمایشی به ${res.deviceCount} دستگاه ارسال شد`, 'success');
     } catch (e) { showToast(e.message, 'error'); }
 }
 async function decidePresentation(id, status) {
