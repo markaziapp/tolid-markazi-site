@@ -403,6 +403,7 @@ async function loadDashboard() {
         loadFavorites();
         loadMyTenders();
         loadMyJobs();
+        loadMyProblems();
         resumePendingChat();
         if (location.hash === '#support') {
             setTimeout(() => document.getElementById('supportMessages')?.scrollIntoView({ behavior: 'smooth' }), 300);
@@ -755,14 +756,37 @@ async function loadReferralInfo() {
         const d = await apiGet('/api/company/referrals', true);
         const card = document.getElementById('referralCard');
         card.style.display = 'block';
-        const link = `${location.origin}${location.pathname}?ref=${d.referralCode}`;
+        const link = `${location.origin}${location.pathname.replace('company.html', 'company.html')}?ref=${d.referralCode}`;
+        const myName = currentDashData?.company?.name || 'یک واحد تولیدی';
+        window._referralMessage =
+`سلام؛ من از طرف ${myName}. استان مرکزی حدود ۳۰۰۰ واحد تولیدی دارد ولی تا امروز پلتفرم مستقلی برای اتصال مستقیم کارخانه‌ها به هم نداشت. «همتا صنعت مرکزی» تازه راه افتاده، رایگان و بدون واسطه. بیا با هم راهش بیندازیم؛ ثبت‌نام از این لینک:
+${link}`;
         card.innerHTML = `
             <div class="rf-title">🤝 دعوت از همکاران — با هر ثبت‌نام موفق، شبکه‌تان بزرگ‌تر می‌شود</div>
             <div class="rf-code">${esc(d.referralCode)}</div><br>
-            <button onclick="navigator.clipboard.writeText('${link}'); showToast('لینک کپی شد', 'success');">📋 کپی لینک دعوت</button>
+            <button onclick="navigator.clipboard.writeText(window._referralMessage); showToast('متن دعوت کپی شد', 'success');">📋 کپی متن دعوت</button>
+            <button onclick="shareReferral()">📤 اشتراک‌گذاری دعوت</button>
             <div class="rf-count">${d.count} نفر تا الان با لینک شما ثبت‌نام کرده‌اند</div>
         `;
     } catch (e) { /* اگر نشد، این کارت را نمایش نده */ }
+}
+
+async function shareReferral() {
+    const text = window._referralMessage || '';
+    if (navigator.share) {
+        try { await navigator.share({ title: 'دعوت به همتا صنعت مرکزی', text }); return; } catch (e) { /* لغو شد یا پشتیبانی نشد */ }
+    }
+    const box = document.createElement('div');
+    box.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:999; display:flex; align-items:center; justify-content:center;';
+    box.innerHTML = `
+        <div style="background:#fff; border-radius:14px; padding:1.2rem; text-align:center; max-width:280px;">
+            <div style="font-weight:700; margin-bottom:1rem;">اشتراک‌گذاری دعوت</div>
+            <a href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" style="display:block; padding:0.6rem; background:#25D366; color:#fff; border-radius:8px; margin-bottom:0.6rem; font-weight:700; text-decoration:none;">واتس‌اپ</a>
+            <a href="https://t.me/share/url?url=&text=${encodeURIComponent(text)}" target="_blank" style="display:block; padding:0.6rem; background:#229ED9; color:#fff; border-radius:8px; margin-bottom:0.6rem; font-weight:700; text-decoration:none;">تلگرام</a>
+            <button onclick="this.closest('div').parentElement.remove()" style="border:none; background:#f1f5f9; padding:0.5rem 1rem; border-radius:8px; font-family:inherit; cursor:pointer;">بستن</button>
+        </div>`;
+    document.body.appendChild(box);
+    box.onclick = (e) => { if (e.target === box) box.remove(); };
 }
 
 function urlBase64ToUint8Array(base64String) {
@@ -951,6 +975,36 @@ async function viewTenderBids(tenderId) {
             </div>
         `).join('') || '<div class="empty-state">پیشنهادی نیست</div>';
     } catch (e) { box.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
+}
+
+const PROBLEM_STATUS_COLOR = {
+    'ثبت شده': '#94a3b8', 'در دستور بازدید': '#3b82f6', 'بازدید شد': '#8b5cf6',
+    'دارای مصوبه': '#d4a94e', 'بسته شده': '#16a34a',
+};
+async function loadMyProblems() {
+    const box = document.getElementById('myProblemsList');
+    try {
+        const problems = await apiGet('/api/company/my-problems', true);
+        if (!problems.length) { box.innerHTML = '<div class="empty-state">هنوز مشکلی ثبت نکرده‌اید — از سایت اصلی، تب «⚠️ مشکلات مشترک» ثبت کنید</div>'; return; }
+        box.innerHTML = problems.map(p => `
+            <div style="padding:0.7rem 0; border-bottom:1px solid #f0f0f0;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem;">
+                    <div style="font-weight:700; font-size:0.88rem;">${esc(p.title)}</div>
+                    <span style="background:${PROBLEM_STATUS_COLOR[p.status]||'#94a3b8'}; color:#fff; font-size:0.68rem; padding:0.2rem 0.6rem; border-radius:10px; white-space:nowrap;">${esc(p.status||'ثبت شده')}</span>
+                </div>
+                <div style="font-size:0.75rem; color:var(--text-light); margin-top:0.2rem;">${esc(toPersianDate(p.created_at))} ${p.visit_date ? '• تاریخ بازدید: ' + esc(toPersianDate(p.visit_date)) : ''}</div>
+                ${(p.resolutions||[]).length ? `
+                    <div style="margin-top:0.5rem; padding-right:0.8rem; border-right:2px solid var(--border);">
+                        ${p.resolutions.map(r => `
+                            <div style="font-size:0.8rem; margin-bottom:0.4rem;">
+                                <b>${esc(r.title)}</b> ${r.responsible_org ? '— مسئول: ' + esc(r.responsible_org) : ''}
+                                <div style="color:var(--text-light);">وضعیت: ${esc(r.status)} ${r.deadline ? '• مهلت: ' + esc(toPersianDate(r.deadline)) : ''}</div>
+                            </div>
+                        `).join('')}
+                    </div>` : ''}
+            </div>
+        `).join('');
+    } catch (e) { box.innerHTML = '<div class="empty-state">خطا در بارگذاری</div>'; }
 }
 
 async function loadMyJobs() {

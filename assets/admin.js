@@ -126,7 +126,7 @@ function switchAdminTab(tab) {
     const loaders = {
         overview: loadOverview, pending: loadPending, companies: loadCompanies, offers: loadOffers,
         requests: loadRequests, rfqs: loadRfqs, services: loadServices, ads: loadAds, messages: loadMessages,
-        files: loadFiles, lookups: loadLookups, chat: loadAdminChat, sms: loadAdminSms, support: loadAdminSupport, events: loadAdminEvents, content: loadAdminContent,
+        files: loadFiles, lookups: loadLookups, chat: loadAdminChat, sms: loadAdminSms, support: loadAdminSupport, events: loadAdminEvents, content: loadAdminContent, problems: loadAdminProblems,
     };
     loaders[tab] && loaders[tab]();
 }
@@ -529,6 +529,104 @@ async function delTender(id) {
 }
 async function delJobAdmin(id) {
     try { await apiSend('DELETE', `/api/admin/jobs/${id}`); loadAdminContent(); }
+    catch (e) { showToast(e.message, 'error'); }
+}
+
+// ------------------------------------------------------------------
+// مشکلات مشترک، بازدید استانداری و پیگیری مصوبات
+// ------------------------------------------------------------------
+const PROBLEM_STATUSES = ['ثبت شده', 'در دستور بازدید', 'بازدید شد', 'دارای مصوبه', 'بسته شده'];
+const RESOLUTION_STATUSES = ['در حال اجرا', 'اجرا شد', 'اجرا نشد'];
+
+async function loadAdminProblems() {
+    const el = document.getElementById('admin-problems');
+    el.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
+    try {
+        const problems = await apiGet('/api/admin/problems');
+        el.innerHTML = `
+            <h2 class="section-title">⚠️ مشکلات ثبت‌شده و پیگیری بازدید</h2>
+            ${problems.map(p => `
+                <div class="card" style="padding:1rem; margin-bottom:1rem;">
+                    <div style="display:flex; justify-content:space-between; gap:0.5rem;">
+                        <div>
+                            <div style="font-weight:800;">${esc(p.title)}</div>
+                            <div style="font-size:0.78rem; color:var(--text-light); margin-top:0.2rem;">
+                                ${esc(p.company || 'ناشناس')} — ${esc(p.phone || '')} • ${esc(p.county || '-')} ${p.category ? '• ' + esc(p.category) : ''} • ${esc(toPersianDate(p.created_at))}
+                                ${p.urgency === 'فوری' ? ' • <span style="color:#dc2626; font-weight:700;">فوری</span>' : ''}
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-danger" onclick="delProblemAdmin(${p.id})">حذف</button>
+                    </div>
+                    ${p.description ? `<p style="font-size:0.85rem; margin-top:0.5rem;">${esc(p.description)}</p>` : ''}
+
+                    <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.7rem; align-items:center;">
+                        <select id="pStatus-${p.id}" style="padding:0.4rem; border-radius:8px; border:1px solid var(--border);">
+                            ${PROBLEM_STATUSES.map(s => `<option value="${s}" ${p.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+                        </select>
+                        <input type="date" id="pVisit-${p.id}" value="${esc((p.visit_date || '').slice(0, 10))}" style="padding:0.4rem; border-radius:8px; border:1px solid var(--border);">
+                        <button class="btn btn-sm btn-primary" onclick="updateProblemStatus(${p.id})">به‌روزرسانی وضعیت</button>
+                    </div>
+
+                    <div style="margin-top:0.8rem; padding-top:0.8rem; border-top:1px dashed var(--border);">
+                        <div style="font-size:0.82rem; font-weight:700; margin-bottom:0.5rem;">مصوبات:</div>
+                        ${(p.resolutions || []).map(r => `
+                            <div style="background:#f7f8fa; border-radius:8px; padding:0.6rem 0.8rem; margin-bottom:0.5rem; font-size:0.82rem;">
+                                <b>${esc(r.title)}</b> ${r.responsible_org ? '— مسئول: ' + esc(r.responsible_org) : ''} ${r.deadline ? '— مهلت: ' + esc(toPersianDate(r.deadline)) : ''}
+                                <div style="display:flex; gap:0.4rem; margin-top:0.4rem; align-items:center;">
+                                    <select id="rStatus-${r.id}" style="padding:0.3rem; border-radius:6px; border:1px solid var(--border); font-size:0.78rem;">
+                                        ${RESOLUTION_STATUSES.map(s => `<option value="${s}" ${r.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+                                    </select>
+                                    <input type="text" id="rNotes-${r.id}" placeholder="یادداشت پیگیری" value="${esc(r.notes || '')}" style="flex:1; padding:0.3rem 0.5rem; border-radius:6px; border:1px solid var(--border); font-size:0.78rem;">
+                                    <button class="btn btn-sm btn-outline" onclick="updateResolution(${r.id}, ${p.id})">ثبت</button>
+                                </div>
+                            </div>
+                        `).join('') || '<div style="font-size:0.78rem; color:var(--text-light);">هنوز مصوبه‌ای ثبت نشده</div>'}
+
+                        <div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.6rem;">
+                            <input type="text" id="newResTitle-${p.id}" placeholder="عنوان مصوبهٔ جدید" style="flex:1; min-width:120px; padding:0.4rem 0.6rem; border-radius:6px; border:1px solid var(--border); font-size:0.8rem;">
+                            <input type="text" id="newResOrg-${p.id}" placeholder="سازمان مسئول" style="width:110px; padding:0.4rem 0.6rem; border-radius:6px; border:1px solid var(--border); font-size:0.8rem;">
+                            <input type="date" id="newResDeadline-${p.id}" style="padding:0.4rem 0.6rem; border-radius:6px; border:1px solid var(--border); font-size:0.8rem;">
+                            <button class="btn btn-sm btn-gold" onclick="addResolution(${p.id})">+ افزودن مصوبه</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('') || '<div class="empty-state">مشکلی ثبت نشده</div>'}
+        `;
+    } catch (e) { el.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
+}
+async function updateProblemStatus(id) {
+    const status = document.getElementById(`pStatus-${id}`).value;
+    const visitDate = document.getElementById(`pVisit-${id}`).value;
+    try {
+        await apiSend('PUT', `/api/admin/problems/${id}`, { status, visitDate });
+        showToast('وضعیت به‌روزرسانی شد', 'success');
+        loadAdminProblems();
+    } catch (e) { showToast(e.message, 'error'); }
+}
+async function addResolution(problemId) {
+    const title = document.getElementById(`newResTitle-${problemId}`).value.trim();
+    if (!title) { showToast('عنوان مصوبه را وارد کنید', 'error'); return; }
+    try {
+        await apiSend('POST', `/api/admin/problems/${problemId}/resolutions`, {
+            title,
+            responsibleOrg: document.getElementById(`newResOrg-${problemId}`).value.trim(),
+            deadline: document.getElementById(`newResDeadline-${problemId}`).value,
+        });
+        showToast('مصوبه ثبت شد', 'success');
+        loadAdminProblems();
+    } catch (e) { showToast(e.message, 'error'); }
+}
+async function updateResolution(id, problemId) {
+    const status = document.getElementById(`rStatus-${id}`).value;
+    const notes = document.getElementById(`rNotes-${id}`).value.trim();
+    try {
+        await apiSend('PUT', `/api/admin/resolutions/${id}`, { status, notes });
+        showToast('پیگیری ثبت شد', 'success');
+        loadAdminProblems();
+    } catch (e) { showToast(e.message, 'error'); }
+}
+async function delProblemAdmin(id) {
+    try { await apiSend('DELETE', `/api/admin/problems/${id}`); loadAdminProblems(); }
     catch (e) { showToast(e.message, 'error'); }
 }
 

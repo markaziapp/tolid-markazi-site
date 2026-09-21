@@ -186,10 +186,60 @@ function switchTab(tab) {
     if (tab === 'tenders') loadTenders();
     if (tab === 'news') loadNews();
     if (tab === 'jobs') loadJobs();
+    if (tab === 'problems') loadProblemsTab();
     if (tab === 'tools') loadFiles();
 }
 
 let factoryMapInstance = null, factoryMarkersLayer = null;
+const PROBLEM_STATUS_COLOR = {
+    'ثبت شده': '#94a3b8', 'در دستور بازدید': '#3b82f6', 'بازدید شد': '#8b5cf6',
+    'دارای مصوبه': '#d4a94e', 'بسته شده': '#16a34a',
+};
+async function loadProblemsTab() {
+    try {
+        const stats = await apiGet('/api/stats/resolutions');
+        document.getElementById('resolutionStats').innerHTML = `
+            <div class="stat-card"><div class="num">${stats.total}</div><div class="label">مشکل ثبت‌شده</div></div>
+            <div class="stat-card"><div class="num">${stats.visited}</div><div class="label">بازدیدشده</div></div>
+            <div class="stat-card"><div class="num">${stats.activeResolutions}</div><div class="label">مصوبهٔ در حال اجرا</div></div>
+            <div class="stat-card"><div class="num">${stats.resolved}</div><div class="label">کاملاً حل‌شده</div></div>
+        `;
+    } catch (e) {}
+    const el = document.getElementById('problemsList');
+    try {
+        const problems = await apiGet('/api/problems');
+        if (!problems.length) { el.innerHTML = emptyState('هنوز مشکلی ثبت نشده — اولین نفر باشید'); return; }
+        el.innerHTML = problems.map(p => `
+            <div class="card" style="padding:1rem; margin-bottom:0.8rem;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem;">
+                    <div style="font-weight:800; color:var(--primary); font-size:0.95rem;">${esc(p.title)}</div>
+                    <span style="background:${PROBLEM_STATUS_COLOR[p.status]||'#94a3b8'}; color:#fff; font-size:0.68rem; padding:0.2rem 0.6rem; border-radius:10px; white-space:nowrap;">${esc(p.status||'ثبت شده')}</span>
+                </div>
+                <div style="font-size:0.78rem; color:var(--text-light); margin-top:0.3rem;">${esc(p.company||'یک واحد تولیدی')} • ${esc(p.county||'-')} ${p.category ? '• ' + esc(p.category) : ''} • ${esc(toPersianDate(p.created_at))}</div>
+                ${p.description ? `<p style="font-size:0.85rem; margin-top:0.5rem;">${esc(p.description)}</p>` : ''}
+            </div>
+        `).join('');
+    } catch (e) { el.innerHTML = emptyState('خطا در بارگذاری'); }
+}
+async function submitProblem() {
+    const title = document.getElementById('pbTitle').value.trim();
+    const phone = document.getElementById('pbPhone').value.trim();
+    if (!title || !phone) { showToast('عنوان مشکل و شماره تماس الزامی است', 'error'); return; }
+    try {
+        await apiPost('/api/problems', {
+            title, phone,
+            description: document.getElementById('pbDescription').value.trim(),
+            category: document.getElementById('pbCategory').value.trim(),
+            county: document.getElementById('pbCounty').value,
+            urgency: document.getElementById('pbUrgency').value,
+            company: document.getElementById('pbCompany').value.trim(),
+        });
+        showToast('مشکل شما ثبت شد؛ در بازدید هفتگی بررسی می‌شود', 'success');
+        closeModal('problemModal');
+        loadProblemsTab();
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
 async function loadJobs() {
     const el = document.getElementById('jobsList');
     try {
@@ -359,11 +409,11 @@ function trackView(path) {
 async function loadLookups() {
     try {
         const [counties, categories] = await Promise.all([apiGet('/api/counties'), apiGet('/api/categories')]);
-        const countySelects = ['spCounty', 'prCounty', 'srCounty', 'offerCounty', 'tdCounty', 'jbCounty'];
+        const countySelects = ['spCounty', 'prCounty', 'srCounty', 'offerCounty', 'tdCounty', 'jbCounty', 'pbCounty'];
         countySelects.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
-            const keepFirst = id === 'offerCounty' || id === 'tdCounty' || id === 'jbCounty';
+            const keepFirst = id === 'offerCounty' || id === 'tdCounty' || id === 'jbCounty' || id === 'pbCounty';
             el.innerHTML = (keepFirst ? '<option value="">همه شهرستان‌ها</option>' : '') +
                 counties.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
         });
