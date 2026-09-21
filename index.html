@@ -13,11 +13,11 @@
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css">
-<link rel="stylesheet" href="assets/styles.css?v=4">
-<script src="assets/theme.js?v=4"></script>
-<script src="assets/lang.js?v=4"></script>
+<link rel="stylesheet" href="assets/styles.css?v=7">
+<script src="assets/theme.js?v=7"></script>
+<script src="assets/lang.js?v=7"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
-<script src="assets/config.js?v=4"></script>
+<script src="assets/config.js?v=7"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script defer src="assets/pwa.js"></script>
 <script type="application/ld+json">
@@ -52,6 +52,7 @@
     <button class="tab-btn" data-tab="tenders" onclick="switchTab('tenders')">📋 مناقصه‌ها</button>
     <button class="tab-btn" data-tab="news" onclick="switchTab('news')">📰 اخبار</button>
     <button class="tab-btn" data-tab="jobs" onclick="switchTab('jobs')">💼 استخدام</button>
+    <button class="tab-btn" data-tab="problems" onclick="switchTab('problems')">⚠️ مشکلات مشترک</button>
     <button class="tab-btn" data-tab="tools" onclick="switchTab('tools')">فایل‌ها</button>
 </nav>
 
@@ -181,6 +182,19 @@
             <button class="btn btn-gold btn-sm" onclick="requireLogin('ثبت آگهی استخدام') && openModal('jobModal')">+ ثبت آگهی استخدام</button>
         </div>
         <div id="jobsList"><div class="loading">در حال بارگذاری...</div></div>
+    </section>
+
+    <!-- ===================== مشکلات مشترک و پیگیری مصوبات ===================== -->
+    <section id="tab-problems" class="tab-page" style="display:none;">
+        <div class="section-head-row">
+            <h2 class="section-title">⚠️ مشکلات مشترک واحدهای تولیدی</h2>
+            <button class="btn btn-gold btn-sm" onclick="openModal('problemModal')">+ ثبت مشکل</button>
+        </div>
+        <p style="font-size:0.82rem; color:var(--text-light); margin-bottom:0.8rem;">
+            بازدیدهای هفتگی تیم اقتصادی استانداری از واحدهای تولیدی، بر اساس همین مشکلات ثبت‌شده برنامه‌ریزی می‌شود. مصوبات هر بازدید و روند اجرای آن‌ها همین‌جا قابل پیگیری است — واحدهایی که عضو پلتفرم‌اند، لحظه‌به‌لحظه از وضعیت مشکل خود باخبر می‌شوند.
+        </p>
+        <div id="resolutionStats" class="stat-cards"></div>
+        <div id="problemsList" style="margin-top:1rem;"><div class="loading">در حال بارگذاری...</div></div>
     </section>
 
     <!-- ===================== فایل‌ها ===================== -->
@@ -391,6 +405,29 @@
     </div>
 </div>
 
+<!-- ===================== مودال: ثبت مشکل مشترک ===================== -->
+<div class="modal-overlay" id="problemModal">
+    <div class="modal">
+        <div class="modal-header"><h3>ثبت مشکل مشترک</h3><button class="modal-close" onclick="closeModal('problemModal')">&times;</button></div>
+        <div class="modal-body">
+            <div class="form-group"><label>عنوان مشکل *</label><input type="text" id="pbTitle" placeholder="مثال: قطعی مکرر برق در ناحیهٔ صنعتی"></div>
+            <div class="form-group"><label>شرح بیشتر</label><textarea id="pbDescription" rows="3"></textarea></div>
+            <div class="form-row">
+                <div class="form-group"><label>دسته‌بندی</label><input type="text" id="pbCategory" placeholder="مثال: زیرساخت، برق، آب، جاده"></div>
+                <div class="form-group"><label>شهرستان</label><select id="pbCounty"></select></div>
+            </div>
+            <div class="form-group"><label>فوریت</label>
+                <select id="pbUrgency"><option value="معمولی">معمولی</option><option value="فوری">فوری</option></select>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>نام واحد تولیدی</label><input type="text" id="pbCompany"></div>
+                <div class="form-group"><label>شماره تماس *</label><input type="tel" id="pbPhone" placeholder="09xxxxxxxxx"></div>
+            </div>
+            <button class="btn btn-gold" style="width:100%;" onclick="submitProblem()">ثبت مشکل</button>
+        </div>
+    </div>
+</div>
+
 <!-- ===================== مودال: جزئیات ===================== -->
 <div class="modal-overlay" id="detailsModal">
     <div class="modal">
@@ -412,7 +449,7 @@
     <span><a href="#" onclick="openModal('contactModal'); return false;" style="color:var(--primary); font-weight:700;">تماس با ما / پیشنهاد و انتقاد</a></span>
 </div>
 
-<script src="assets/app.js?v=4"></script>
-<script src="assets/support-widget.js?v=4"></script>
+<script src="assets/app.js?v=7"></script>
+<script src="assets/support-widget.js?v=7"></script>
 </body>
 </html>
