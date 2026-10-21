@@ -1,1 +1,61 @@
-<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="assets/office.css?v=8"><script src="assets/config.js?v=8"></script><title>خدمات مکاتبات اداری | همتا صنعت</title></head><body><nav class="office-nav"><a href="index.html">🏠 صفحه اصلی</a><a href="company.html">پنل واحد تولیدی</a><a href="office.html">مکاتبات اداری</a><a href="office-agency.html">ورود ادارات</a><a href="office-admin.html">مدیریت مکاتبات</a></nav><main class="office-wrap"><header class="office-hero"><h1>دبیرخانه و پیگیری امور اداری واحدهای تولیدی</h1><p>ثبت نامه، تنظیم متن به درخواست شما، پیگیری حضوری توسط همتا صنعت و دریافت پاسخ با کد رهگیری</p><small>این سامانه به شبکه دولت متصل نیست؛ تحویل و پیگیری نامه‌ها توسط تیم همتا صنعت انجام می‌شود.</small></header><div id="message"></div><section class="office-card"><h2>تعرفه خدمات و اشتراک‌ها</h2><div id="plans" class="office-grid"></div><p id="paymentInfo" class="office-muted"></p></section><section class="office-card"><h2>ثبت مکاتبه یا کار اداری</h2><p class="office-muted">برای ثبت درخواست، ابتدا در پنل واحد تولیدی وارد شوید. هزینه پیش از ارسال نمایش داده می‌شود.</p><form id="requestForm"><label>اداره مقصد<select id="agency" required></select></label><label>نوع خدمت<select id="service" required></select></label><label>موضوع نامه<input id="subject" maxlength="180" required></label><label>متن نامه<textarea id="body" rows="7" maxlength="10000" placeholder="اگر تنظیم متن را به همتا صنعت می‌سپارید، شرح درخواست را اینجا بنویسید"></textarea></label><label><input id="write" type="checkbox" style="width:auto"> تنظیم متن رسمی نامه توسط همتا صنعت (خدمت پولی)</label><p id="estimate"></p><button>ثبت و دریافت کد رهگیری</button></form></section><section class="office-card"><h2>درخواست‌های من و رهگیری</h2><button onclick="loadMine()">بروزرسانی فهرست</button><div id="mine"></div><div id="detail"></div></section></main><script src="assets/office.js?v=8"></script></body></html>
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>پورتال ادارات — همتاصنعت</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0f3460">
+<link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css">
+<link rel="stylesheet" href="assets/styles.css?v=8">
+<link rel="stylesheet" href="assets/corr.css?v=8">
+<script src="assets/theme.js?v=8"></script>
+<script src="assets/config.js?v=8"></script>
+</head>
+<body>
+
+<header class="topbar">
+    <div class="container">
+        <div class="brand">🏛️ پورتال ادارات <span>همتاصنعت</span></div>
+        <div class="header-actions" id="officeHeaderActions"></div>
+    </div>
+</header>
+
+<main class="container corr-main">
+
+    <!-- ورود -->
+    <section id="loginView" class="office-login">
+        <div class="corr-box">
+            <h2 style="font-size:1.1rem;text-align:center;margin-bottom:.3rem;">ورود نمایندهٔ اداره</h2>
+            <p style="font-size:.8rem;color:var(--text-light);text-align:center;margin-bottom:1rem;">با نام کاربری و رمزی که همتاصنعت در اختیار شما گذاشته وارد شوید.</p>
+            <div class="form-group"><label>نام کاربری</label><input type="text" id="ofUser" autocomplete="username" style="direction:ltr;text-align:left;"></div>
+            <div class="form-group"><label>رمز عبور</label><input type="password" id="ofPass" autocomplete="current-password" style="direction:ltr;text-align:left;" onkeydown="if(event.key==='Enter') OFFICE.login()"></div>
+            <button class="btn btn-primary" style="width:100%;" onclick="OFFICE.login()">ورود</button>
+        </div>
+    </section>
+
+    <!-- فهرست نامه‌ها -->
+    <section id="listView" style="display:none;">
+        <div class="office-hero">
+            <div><b id="ofOfficeName"></b><small id="ofUserName"></small></div>
+            <div id="ofCounts" style="font-size:.8rem;"></div>
+        </div>
+        <div class="corr-tabs" id="ofFilters"></div>
+        <div id="ofList"></div>
+        <p style="font-size:.74rem;color:var(--text-light);text-align:center;margin-top:1rem;">فقط نامه‌هایی که همتاصنعت به اداره شما ارجاع داده نمایش داده می‌شود.</p>
+    </section>
+</main>
+
+<!-- جزئیات نامه -->
+<div class="modal-overlay" id="ofModal">
+    <div class="modal wide">
+        <div class="modal-header"><h3 id="ofModalTitle">نامه</h3><button class="modal-close" onclick="OFFICE.closeModal()">&times;</button></div>
+        <div class="modal-body" id="ofModalBody"></div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="assets/corr-common.js?v=8"></script>
+<script src="assets/office.js?v=8"></script>
+</body>
+</html>

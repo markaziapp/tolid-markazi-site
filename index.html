@@ -13,11 +13,11 @@
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css">
-<link rel="stylesheet" href="assets/styles.css?v=7">
-<script src="assets/theme.js?v=7"></script>
-<script src="assets/lang.js?v=7"></script>
+<link rel="stylesheet" href="assets/styles.css?v=8">
+<script src="assets/theme.js?v=8"></script>
+<script src="assets/lang.js?v=8"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
-<script src="assets/config.js?v=7"></script>
+<script src="assets/config.js?v=8"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script defer src="assets/pwa.js"></script>
 <script type="application/ld+json">
@@ -46,15 +46,20 @@
     <button class="tab-btn" data-tab="requests" data-i18n="tab_requests" onclick="switchTab('requests')">درخواست خرید</button>
     <button class="tab-btn" data-tab="services" data-i18n="tab_services" onclick="switchTab('services')">درخواست خدمات</button>
     <button class="tab-btn" data-tab="companies" data-i18n="tab_companies" onclick="switchTab('companies')">واحدهای تولیدی</button>
-    <button class="tab-btn" data-tab="map" onclick="switchTab('map')">🗺️ نقشه</button>
-    <button class="tab-btn" data-tab="events" onclick="switchTab('events')">📅 رویدادها</button>
-    <button class="tab-btn" data-tab="showcase" onclick="switchTab('showcase')">🏆 نمایشگاه برتر</button>
-    <button class="tab-btn" data-tab="tenders" onclick="switchTab('tenders')">📋 مناقصه‌ها</button>
-    <button class="tab-btn" data-tab="news" onclick="switchTab('news')">📰 اخبار</button>
-    <button class="tab-btn" data-tab="jobs" onclick="switchTab('jobs')">💼 استخدام</button>
-    <button class="tab-btn" data-tab="problems" onclick="switchTab('problems')">⚠️ مشکلات مشترک</button>
-    <button class="tab-btn" data-tab="tools" onclick="switchTab('tools')">فایل‌ها</button>
+    <a class="tab-btn tab-corr" href="corr.html">📨 امور اداری</a>
+    <button class="tab-btn more-btn" id="moreBtn" onclick="toggleMoreMenu(event)">☰ بیشتر</button>
 </nav>
+<div class="more-backdrop" id="moreBackdrop" onclick="closeMoreMenu()"></div>
+<div class="more-menu" id="moreMenu"><div class="more-panel">
+    <button class="more-item" data-tab="map" onclick="switchTab('map'); closeMoreMenu();">🗺️ نقشه</button>
+    <button class="more-item" data-tab="events" onclick="switchTab('events'); closeMoreMenu();">📅 رویدادها</button>
+    <button class="more-item" data-tab="showcase" onclick="switchTab('showcase'); closeMoreMenu();">🏆 نمایشگاه برتر</button>
+    <button class="more-item" data-tab="tenders" onclick="switchTab('tenders'); closeMoreMenu();">📋 مناقصه‌ها</button>
+    <button class="more-item" data-tab="news" onclick="switchTab('news'); closeMoreMenu();">📰 اخبار</button>
+    <button class="more-item" data-tab="jobs" onclick="switchTab('jobs'); closeMoreMenu();">💼 استخدام</button>
+    <button class="more-item" data-tab="problems" onclick="switchTab('problems'); closeMoreMenu();">⚠️ مشکلات مشترک</button>
+    <button class="more-item" data-tab="tools" onclick="switchTab('tools'); closeMoreMenu();">فایل‌ها</button>
+</div></div>
 
 <main class="container" style="padding-bottom:3rem;">
 
@@ -77,6 +82,11 @@
             <button class="btn btn-primary" data-i18n="btn_purchase" onclick="openModalAuth('purchaseRequestModal', 'ثبت درخواست خرید')">+ درخواست خرید</button>
             <button class="btn btn-outline" data-i18n="btn_service" onclick="openModalAuth('serviceRequestModal', 'ثبت درخواست خدمات')">+ درخواست خدمات</button>
         </div>
+        <a href="corr.html" class="corr-promo">
+            <div class="cp-ic">📨</div>
+            <div class="cp-tx"><b>دستیار اداری همتاصنعت</b><span>نامه‌نگاری و پیگیری کارهای اداری واحدتان را به ما بسپارید — با کد رهگیری</span></div>
+            <div class="cp-go">←</div>
+        </a>
 
         <div id="topWeeklySection" style="display:none;">
             <div class="section-head-row">
@@ -449,7 +459,7 @@
     <span><a href="#" onclick="openModal('contactModal'); return false;" style="color:var(--primary); font-weight:700;">تماس با ما / پیشنهاد و انتقاد</a></span>
 </div>
 
-<script src="assets/app.js?v=7"></script>
-<script src="assets/support-widget.js?v=7"></script>
+<script src="assets/app.js?v=8"></script>
+<script src="assets/support-widget.js?v=8"></script>
 </body>
 </html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>دستیار اداری همتاصنعت — پیگیری مکاتبات و کارهای اداری واحدهای تولیدی</title>
+<meta name="description" content="مکاتبه و کار اداری واحد تولیدی‌تان را به همتاصنعت بسپارید؛ کد رهگیری بگیرید و روند پیگیری را لحظه‌به‌لحظه ببینید.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f3460">
+<link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css">
+<link rel="stylesheet" href="assets/styles.css?v=8">
+<link rel="stylesheet" href="assets/corr.css?v=8">
+<script src="assets/theme.js?v=8"></script>
+<script src="assets/config.js?v=8"></script>
+<script defer src="assets/pwa.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+    <div class="container">
+        <div class="brand">📨 دستیار اداری <span>همتاصنعت</span></div>
+        <div class="header-actions">
+            <a href="index.html" class="btn btn-outline btn-sm" style="background:transparent;color:#fff;border-color:rgba(255,255,255,0.4);">← سایت</a>
+        </div>
+    </div>
+</header>
+
+<main class="container corr-main">
+
+    <!-- ===== بنر اصلی ===== -->
+    <section class="corr-hero">
+        <span class="eyebrow">🏛️ سرویس ویژهٔ واحدهای تولیدی</span>
+        <h1 id="heroTitle">کارهای اداری واحدتان را به همتاصنعت بسپارید</h1>
+        <p id="heroText">نامه‌نگاری، پیگیری و دریافت پاسخ از ادارات را ثبت کنید؛ کد رهگیری بگیرید و روند کار را لحظه‌به‌لحظه ببینید.</p>
+        <div class="hero-actions">
+            <button class="btn btn-gold" onclick="openNewRequest()">✍️ ثبت درخواست جدید</button>
+            <button class="btn btn-ghost-light" onclick="document.getElementById('trackSection').scrollIntoView({behavior:'smooth'})">🔎 رهگیری با کد</button>
+        </div>
+        <div class="hero-stats" id="heroStats"></div>
+    </section>
+
+    <div class="corr-box" id="moduleOff" style="display:none; text-align:center;">
+        <b>این سرویس به‌زودی فعال می‌شود</b>
+        <p style="font-size:.84rem; color:var(--text-light); margin-top:.3rem;">به‌محض آماده‌شدن، از همین‌جا قابل استفاده است.</p>
+    </div>
+
+    <!-- ===== رهگیری ===== -->
+    <section class="corr-section" id="trackSection">
+        <h2>🔎 رهگیری درخواست</h2>
+        <p class="sub">کد رهگیری (مثل HS-AB12CD34) را وارد کنید تا وضعیت را ببینید.</p>
+        <div class="corr-box">
+            <div class="corr-track">
+                <input type="text" id="trackInput" placeholder="HS-XXXXXXXX" maxlength="14" onkeydown="if(event.key==='Enter') doTrack()">
+                <button class="btn btn-primary" onclick="doTrack()">رهگیری</button>
+            </div>
+            <div id="trackResult"></div>
+        </div>
+    </section>
+
+    <!-- ===== بخش شخصی (درخواست‌ها و اشتراک من) ===== -->
+    <section class="corr-section" id="myArea"></section>
+
+    <!-- ===== مراحل کار ===== -->
+    <section class="corr-section">
+        <h2>چطور کار می‌کند؟</h2>
+        <p class="sub">بدون رفت‌وآمد و بدون معطلی نیروی کارخانه</p>
+        <div class="corr-steps">
+            <div class="corr-step"><span class="num">۱</span><div class="ic">✍️</div><b>درخواست را ثبت کنید</b><span>اداره، موضوع و متن نامه را بنویسید یا تصویر/PDF نامهٔ رسمی را بارگذاری کنید.</span></div>
+            <div class="corr-step"><span class="num">۲</span><div class="ic">🔖</div><b>کد رهگیری بگیرید</b><span>همان لحظه یک کد یکتا دریافت می‌کنید و همیشه می‌توانید وضعیت را ببینید.</span></div>
+            <div class="corr-step"><span class="num">۳</span><div class="ic">🚶</div><b>ما پیگیری می‌کنیم</b><span>کارگزار همتاصنعت نامه را به اداره می‌رساند و تا گرفتن نتیجه پیگیری می‌کند.</span></div>
+            <div class="corr-step"><span class="num">۴</span><div class="ic">📬</div><b>نتیجه را همین‌جا ببینید</b><span>پاسخ اداره و تمام مراحل در خط زمانی درخواست ثبت می‌شود و به شما اعلان می‌رسد.</span></div>
+        </div>
+    </section>
+
+    <!-- ===== اشتراک‌ها ===== -->
+    <section class="corr-section" id="plansSection" style="display:none;">
+        <h2>💎 اشتراک دستیار اداری</h2>
+        <p class="sub">برای واحدهایی که مرتب با ادارات مکاتبه دارند، اشتراک به‌صرفه‌تر است.</p>
+        <div class="corr-plans" id="plansGrid"></div>
+    </section>
+
+    <!-- ===== نرخ خدمات ===== -->
+    <section class="corr-section" id="pricesSection" style="display:none;">
+        <h2>💰 نرخ هر خدمت</h2>
+        <p class="sub">بدون اشتراک هم می‌توانید هر خدمت را جداگانه سفارش دهید.</p>
+        <div class="corr-prices" id="pricesList"></div>
+    </section>
+
+    <section class="corr-section">
+        <div class="corr-box" style="font-size:.8rem; color:var(--text-light);">
+            <b style="color:var(--text);">نکتهٔ شفافیت:</b>
+            درخواست‌های شما توسط تیم همتاصنعت (به‌صورت حضوری یا ارتباط مستقیم با اداره) پیگیری می‌شود؛
+            این سرویس به سامانه‌های اتوماسیون دولتی متصل نیست و پاسخ ادارات پس از دریافت، در همین صفحه برای شما ثبت می‌شود.
+            مدت زمان پاسخ بستگی به اداره مربوطه دارد.
+        </div>
+    </section>
+</main>
+
+<!-- ===== مودال: ثبت درخواست جدید ===== -->
+<div class="modal-overlay" id="newReqModal">
+    <div class="modal wide">
+        <div class="modal-header"><h3>✍️ درخواست جدید</h3><button class="modal-close" onclick="closeModal('newReqModal')">&times;</button></div>
+        <div class="modal-body" id="newReqBody"></div>
+    </div>
+</div>
+
+<!-- ===== مودال: جزئیات درخواست ===== -->
+<div class="modal-overlay" id="detailModal">
+    <div class="modal wide">
+        <div class="modal-header"><h3 id="detailTitle">جزئیات درخواست</h3><button class="modal-close" onclick="closeModal('detailModal')">&times;</button></div>
+        <div class="modal-body" id="detailBody"></div>
+    </div>
+</div>
+
+<!-- ===== مودال: خرید اشتراک ===== -->
+<div class="modal-overlay" id="subModal">
+    <div class="modal">
+        <div class="modal-header"><h3>💎 خرید اشتراک</h3><button class="modal-close" onclick="closeModal('subModal')">&times;</button></div>
+        <div class="modal-body" id="subBody"></div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="assets/corr-common.js?v=8"></script>
+<script src="assets/corr.js?v=8"></script>
+<script src="assets/support-widget.js?v=8"></script>
+</body>
+</html>
