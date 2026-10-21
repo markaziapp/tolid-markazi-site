@@ -1,1 +1,121 @@
-const base=window.API_BASE, token=()=>localStorage.getItem('companyToken');const el=id=>document.getElementById(id);const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));async function api(path,method='GET',body,auth=true){const h={};if(auth)h.Authorization='Bearer '+token();if(body)h['Content-Type']='application/json';const r=await fetch(base+path,{method,headers:h,body:body?JSON.stringify(body):undefined});const j=await r.json();if(!r.ok)throw Error(j.error||j.detail||'خطا');return j}let catalog;function msg(t,ok=false){el('message').innerHTML='<p class="'+(ok?'office-success':'office-error')+'">'+safe(t)+'</p>'}async function start(){try{catalog=await api('/api/office/catalog','GET',null,false);el('agency').innerHTML='<option value="">انتخاب اداره</option>'+catalog.agencies.map(x=>`<option value="${x.id}">${safe(x.name)}</option>`).join('');el('service').innerHTML='<option value="">انتخاب خدمت</option>'+catalog.services.map(x=>`<option value="${x.id}">${safe(x.name)} ـ ${x.price.toLocaleString('fa-IR')} تومان</option>`).join('');el('plans').innerHTML=catalog.plans.map(p=>`<div class="office-item"><b>${safe(p.name)}</b><p>${p.price.toLocaleString('fa-IR')} تومان / ${p.months||'بدون دوره'} ماه</p><p>سقف درخواست: ${p.request_limit||'بدون سهمیه'}</p><button onclick="subscribe(${p.id})">انتخاب طرح</button></div>`).join('');el('paymentInfo').textContent=catalog.paymentInstructions;estimate();await loadMine()}catch(e){msg(e.message)}}function estimate(){const s=catalog?.services.find(x=>x.id==el('service').value);el('estimate').textContent='هزینه پایه: '+((s?.price||0)+(el('write').checked?catalog.writingFee:0)).toLocaleString('fa-IR')+' تومان (قبل از بررسی اشتراک)'}el('service').onchange=estimate;el('write').onchange=estimate;el('requestForm').onsubmit=async e=>{e.preventDefault();try{const x=await api('/api/office/request','POST',{agency_id:+el('agency').value,service_id:+el('service').value,subject:el('subject').value,body:el('body').value,write_for_me:el('write').checked});msg('ثبت شد؛ کد رهگیری: '+x.tracking_code+' | مبلغ: '+x.price.toLocaleString('fa-IR')+' تومان',true);e.target.reset();estimate();loadMine()}catch(e){msg(e.message)}};async function subscribe(id){try{const r=await api('/api/office/subscribe','POST',{plan_id:id});msg(r.message,true);loadMine()}catch(e){msg(e.message)}}async function loadMine(){if(!token()){el('mine').textContent='برای مشاهده سوابق، وارد پنل واحد تولیدی شوید.';return}try{const d=await api('/api/office/my');el('mine').innerHTML='<h3>اشتراک‌ها</h3>'+d.subscriptions.map(x=>`<div class="office-item">${safe(x.plan_name)} ـ ${safe(x.status)}</div>`).join('')+'<h3>نامه‌ها و درخواست‌ها</h3>'+d.requests.map(x=>`<div class="office-item"><b>${safe(x.tracking_code)}</b> | ${safe(x.subject)} | ${safe(x.agency_name)} | ${safe(x.status)} | پرداخت: ${safe(x.payment_status)} <button onclick="detail(${x.id})">جزئیات و پیوست</button></div>`).join('')}catch(e){el('mine').textContent=e.message}}async function detail(id){try{const d=await api('/api/office/request/'+id);el('detail').innerHTML='<div class="office-card"><h3>'+safe(d.request.tracking_code)+'</h3>'+d.events.map(x=>`<p>${safe(x.created_at)} ـ ${safe(x.note)}</p>`).join('')+'<h4>پیوست‌های خصوصی</h4>'+d.documents.map(x=>`<button onclick="downloadDoc(${x.id})">${safe(x.filename)}</button>`).join('')+`<form id="uploadForm"><input type="file" id="attachment" accept=".pdf,.jpg,.jpeg,.png" required><button>افزودن پیوست (تا ۷۰۰ کیلوبایت)</button></form></div>`;el('uploadForm').onsubmit=async e=>{e.preventDefault();const fd=new FormData();fd.append('file',el('attachment').files[0]);try{const r=await fetch(base+'/api/office/request/'+id+'/document',{method:'POST',headers:{Authorization:'Bearer '+token()},body:fd});const x=await r.json();if(!r.ok)throw Error(x.error);msg('پیوست ثبت شد',true);detail(id)}catch(e){msg(e.message)}}}catch(e){msg(e.message)}}async function downloadDoc(id){try{const r=await fetch(base+'/api/office/document/'+id,{headers:{Authorization:'Bearer '+token()}});if(!r.ok)throw Error('دریافت فایل ناموفق بود');const b=await r.blob(),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='office-document-'+id;a.click();setTimeout(()=>URL.revokeObjectURL(u),3000)}catch(e){msg(e.message)}}start();
+// ===================================================================
+// پورتال ادارات (office.html) — فقط نامه‌های ارجاع‌شده به همان اداره
+// ===================================================================
+(function () {
+    const { esc, fa, api, fmtDate, statusChip, attHtml, timeline, mountUploader, uploaderUrls, uploaderBusy } = CX;
+    const KEY = 'officeToken', INFO = 'officeInfo';
+    let items = [], filter = 'open';
+
+    const token = () => localStorage.getItem(KEY);
+    function toast(msg, type = '') {
+        const t = document.getElementById('toast'); t.textContent = msg; t.className = 'toast show' + (type ? ' ' + type : '');
+        clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 3500);
+    }
+    async function call(method, path, body) {
+        const headers = {}; if (body) headers['Content-Type'] = 'application/json';
+        if (token()) headers.Authorization = 'Bearer ' + token();
+        const res = await fetch(api(path), { method, headers, body: body ? JSON.stringify(body) : undefined });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { const e = new Error(data.error || 'خطا'); e.status = res.status; throw e; }
+        return data;
+    }
+    const show = (id, on) => { document.getElementById(id).style.display = on ? 'block' : 'none'; };
+
+    function showLogin() {
+        show('loginView', true); show('listView', false);
+        document.getElementById('officeHeaderActions').innerHTML = '';
+    }
+    function showList() {
+        const info = JSON.parse(localStorage.getItem(INFO) || '{}');
+        show('loginView', false); show('listView', true);
+        document.getElementById('ofOfficeName').textContent = info.office || 'اداره';
+        document.getElementById('ofUserName').textContent = info.user ? 'نماینده: ' + info.user : '';
+        document.getElementById('officeHeaderActions').innerHTML = '<button class="btn btn-outline btn-sm" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.4);" onclick="OFFICE.logout()">خروج</button>';
+    }
+
+    async function login() {
+        const username = document.getElementById('ofUser').value.trim(), password = document.getElementById('ofPass').value;
+        if (!username || !password) { toast('نام کاربری و رمز را وارد کنید', 'error'); return; }
+        try {
+            const r = await call('POST', '/api/office/login', { username, password });
+            localStorage.setItem(KEY, r.token);
+            localStorage.setItem(INFO, JSON.stringify({ office: r.office.name, user: r.user.name }));
+            showList(); await load();
+        } catch (e) { toast(e.message, 'error'); }
+    }
+    function logout() { localStorage.removeItem(KEY); localStorage.removeItem(INFO); showLogin(); }
+
+    async function load() {
+        const list = document.getElementById('ofList');
+        list.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
+        try { items = await call('GET', '/api/office/requests'); }
+        catch (e) { if (e.status === 401) { logout(); toast('نشست شما منقضی شده؛ دوباره وارد شوید', 'error'); return; } list.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; return; }
+        render();
+    }
+    function render() {
+        const isOpen = (r) => !['انجام شد', 'لغو شد'].includes(r.status);
+        const newCount = items.filter((r) => r.status === 'ارجاع شد').length;
+        document.getElementById('ofCounts').innerHTML = `${fa(items.filter(isOpen).length)} نامهٔ باز${newCount ? ` · <b style="color:var(--gold)">${fa(newCount)} جدید</b>` : ''}`;
+        const tabs = [['open', 'باز'], ['all', 'همه'], ['done', 'انجام‌شده']];
+        document.getElementById('ofFilters').innerHTML = tabs.map(([k, l]) => `<button class="${filter === k ? 'active' : ''}" onclick="OFFICE.setFilter('${k}')">${l}</button>`).join('');
+        const shown = items.filter((r) => filter === 'all' || (filter === 'open' ? isOpen(r) : r.status === 'انجام شد'));
+        document.getElementById('ofList').innerHTML = shown.length ? shown.map((r) => `
+            <button class="corr-req ${r.status === 'ارجاع شد' ? 'unread' : ''}" onclick="OFFICE.open(${r.id})">
+                <div class="row1"><span class="code">${esc(r.tracking_code)}</span>${statusChip(r.status)}</div>
+                <div class="subj">${esc(r.subject)}</div>
+                <div class="meta"><span>📤 فرستنده: ${esc(r.company_name || '')}</span><span>${fmtDate(r.updated_at)}</span>${r.priority === 'فوری' ? '<span class="pay-chip warn">فوری</span>' : ''}</div>
+            </button>`).join('') : '<div class="empty-state">نامه‌ای در این بخش وجود ندارد</div>';
+    }
+    function setFilter(f) { filter = f; render(); }
+
+    async function open(id) {
+        document.getElementById('ofModal').classList.add('open');
+        const body = document.getElementById('ofModalBody');
+        body.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
+        try {
+            const r = await call('GET', '/api/office/requests/' + id);
+            document.getElementById('ofModalTitle').textContent = 'نامه ' + r.tracking_code;
+            const closed = ['انجام شد', 'لغو شد'].includes(r.status);
+            body.innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap;"><span style="direction:ltr;font-weight:800;">${esc(r.tracking_code)}</span>${statusChip(r.status)}</div>
+                <div class="corr-box" style="margin-top:.7rem;font-size:.86rem;">
+                    <div>📤 فرستنده: <b>${esc(r.company_name || '')}</b></div>
+                    <div>📅 تاریخ: ${fmtDate(r.created_at)}${r.priority === 'فوری' ? ' · <b style="color:var(--red)">فوری</b>' : ''}</div>
+                    <hr style="border:none;border-top:1px solid var(--border);margin:.6rem 0;">
+                    <div><b>${esc(r.subject)}</b></div>
+                    ${r.body ? `<div style="white-space:pre-wrap;margin-top:.3rem;">${esc(r.body)}</div>` : ''}
+                    ${r.needs_physical ? '<div style="font-size:.76rem;color:var(--text-light);margin-top:.3rem;">نامهٔ رسمی (زنده) — تصویر/PDF پیوست است.</div>' : ''}
+                    ${attHtml(r.attachments)}
+                </div>
+                <h4 style="margin:1rem 0 .3rem;">سوابق</h4>
+                ${timeline(r.events)}
+                ${closed ? '' : `
+                <div class="corr-box" style="margin-top:.8rem;">
+                    <b style="font-size:.88rem;">✍️ ثبت پاسخ اداره</b>
+                    <textarea id="ofReply" rows="4" placeholder="پاسخ یا توضیحات اداره..." style="margin:.5rem 0;"></textarea>
+                    <div id="ofReplyFiles"></div>
+                    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.6rem;">
+                        <button class="btn btn-gold btn-sm" onclick="OFFICE.reply(${r.id}, 'reply')">ثبت پاسخ</button>
+                        <button class="btn btn-outline btn-sm" onclick="OFFICE.reply(${r.id}, 'ack')">فقط اعلام دریافت نامه</button>
+                    </div>
+                    <div style="font-size:.72rem;color:var(--text-light);margin-top:.5rem;">پاسخ ثبت‌شده ابتدا توسط همتاصنعت بررسی و سپس برای واحد منتشر می‌شود.</div>
+                </div>`}`;
+            if (!closed) mountUploader('ofReplyFiles', { max: 4, label: '📎 پیوست پاسخ (عکس یا PDF)', onError: (m) => toast(m, 'error') });
+        } catch (e) { body.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
+    }
+    async function reply(id, kind) {
+        if (uploaderBusy('ofReplyFiles')) { toast('صبر کنید تا آپلود تمام شود', 'error'); return; }
+        const text = document.getElementById('ofReply').value.trim(), attachments = uploaderUrls('ofReplyFiles');
+        if (kind === 'reply' && !text && !attachments.length) { toast('متن یا پیوست پاسخ را وارد کنید', 'error'); return; }
+        try {
+            await call('POST', `/api/office/requests/${id}/reply`, { kind, text, attachments });
+            toast(kind === 'ack' ? 'دریافت نامه ثبت شد' : 'پاسخ ثبت شد', 'success');
+            await load(); open(id);
+        } catch (e) { toast(e.message, 'error'); }
+    }
+    function closeModal() { document.getElementById('ofModal').classList.remove('open'); }
+    document.addEventListener('click', (e) => { if (e.target.id === 'ofModal') closeModal(); });
+
+    window.OFFICE = { login, logout, setFilter, open, reply, closeModal };
+    window.addEventListener('DOMContentLoaded', () => { if (token()) { showList(); load(); } else showLogin(); });
+})();

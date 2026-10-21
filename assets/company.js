@@ -342,6 +342,7 @@ async function doRegister() {
             refCode: new URLSearchParams(location.search).get('ref') || null,
         });
         setToken(data.token);
+        { const nx = sessionStorage.getItem('afterLogin'); if (nx) { sessionStorage.removeItem('afterLogin'); location.href = nx; return; } }
         showToast('ثبت‌نام شما انجام شد', 'success');
         loadDashboard();
     } catch (e) { showToast(e.message, 'error'); }
@@ -354,6 +355,7 @@ async function doLogin() {
     try {
         const data = await apiSend('POST', '/api/company/login', { phone, password });
         setToken(data.token);
+        { const nx = sessionStorage.getItem('afterLogin'); if (nx) { sessionStorage.removeItem('afterLogin'); location.href = nx; return; } }
         showToast('خوش آمدید', 'success');
         loadDashboard();
     } catch (e) { showToast(e.message, 'error'); }

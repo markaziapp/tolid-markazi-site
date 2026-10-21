@@ -124,6 +124,7 @@ function switchAdminTab(tab) {
     target.style.animation = '';
     document.querySelectorAll('#adminTabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     const loaders = {
+        corr: (typeof loadCorr === 'function' ? loadCorr : null),
         overview: loadOverview, pending: loadPending, companies: loadCompanies, offers: loadOffers,
         requests: loadRequests, rfqs: loadRfqs, services: loadServices, ads: loadAds, messages: loadMessages,
         files: loadFiles, lookups: loadLookups, chat: loadAdminChat, sms: loadAdminSms, support: loadAdminSupport, events: loadAdminEvents, content: loadAdminContent, problems: loadAdminProblems,

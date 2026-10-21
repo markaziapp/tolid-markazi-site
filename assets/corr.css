@@ -1,0 +1,195 @@
+/* ============================================================
+   دستیار اداری همتا صنعت — استایل مشترک (صفحهٔ واحد، پورتال ادارات، تب مدیریت)
+   فقط از متغیرهای styles.css استفاده می‌کند تا حالت تاریک خودکار کار کند
+   ============================================================ */
+.corr-main { padding-bottom: 5rem; }
+
+/* ----- بنر اصلی ----- */
+.corr-hero {
+  position: relative; overflow: hidden; border-radius: 20px; margin: 1.2rem 0;
+  padding: 2rem 1.4rem 1.8rem; color: #fff;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(212,169,78,0.28), transparent 42%),
+    radial-gradient(circle at 92% 85%, rgba(255,255,255,0.08), transparent 40%),
+    linear-gradient(135deg, #0f3460 0%, #0a2647 60%, #0a1a30 100%);
+  box-shadow: 0 14px 34px rgba(10,38,71,0.28);
+}
+.corr-hero::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background-image: repeating-linear-gradient(135deg, rgba(212,169,78,0.07) 0 2px, transparent 2px 46px);
+}
+.corr-hero > * { position: relative; z-index: 1; }
+.corr-hero .eyebrow { display: inline-block; font-size: .74rem; font-weight: 800; letter-spacing: .02em; color: var(--gold);
+  background: rgba(212,169,78,0.14); border: 1px solid rgba(212,169,78,0.35); padding: .2rem .8rem; border-radius: 99px; }
+.corr-hero h1 { font-size: 1.55rem; font-weight: 800; line-height: 1.5; margin: .8rem 0 .5rem; }
+.corr-hero p { color: rgba(255,255,255,.78); font-size: .92rem; max-width: 560px; }
+.corr-hero .hero-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1.3rem; }
+.corr-hero .hero-stats { display: flex; gap: 1.4rem; flex-wrap: wrap; margin-top: 1.4rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,.14); }
+.corr-hero .hero-stats b { display: block; font-size: 1.25rem; color: var(--gold); }
+.corr-hero .hero-stats span { font-size: .74rem; color: rgba(255,255,255,.65); }
+.btn-ghost-light { background: rgba(255,255,255,.1); color: #fff; border: 1.5px solid rgba(255,255,255,.3); }
+.btn-ghost-light:hover { background: rgba(255,255,255,.18); }
+
+/* ----- بخش‌ها ----- */
+.corr-section { margin: 1.8rem 0; }
+.corr-section > h2 { font-size: 1.15rem; font-weight: 800; color: var(--primary); margin-bottom: .3rem; }
+[data-theme="dark"] .corr-section > h2 { color: var(--gold); }
+.corr-section > .sub { font-size: .84rem; color: var(--text-light); margin-bottom: 1rem; }
+
+/* ----- مراحل کار ----- */
+.corr-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: .8rem; }
+.corr-step { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; position: relative; box-shadow: var(--shadow); }
+.corr-step .num { position: absolute; top: .7rem; left: .8rem; font-size: 1.7rem; font-weight: 800; color: var(--gold); opacity: .35; }
+.corr-step .ic { font-size: 1.7rem; margin-bottom: .4rem; }
+.corr-step b { display: block; font-size: .92rem; margin-bottom: .15rem; }
+.corr-step span { font-size: .8rem; color: var(--text-light); }
+
+/* ----- طرح‌های اشتراک ----- */
+.corr-plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+.corr-plan { position: relative; background: var(--surface); border: 1.5px solid var(--border); border-radius: 16px; padding: 1.3rem 1.1rem 1.1rem; text-align: center; box-shadow: var(--shadow); transition: var(--transition); }
+.corr-plan:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+.corr-plan.featured { border-color: var(--gold); box-shadow: 0 10px 26px rgba(212,169,78,.25); }
+.corr-plan .ribbon { position: absolute; top: -11px; right: 50%; transform: translateX(50%); background: var(--gold); color: #fff; font-size: .7rem; font-weight: 800; padding: .15rem .8rem; border-radius: 99px; white-space: nowrap; }
+.corr-plan h3 { font-size: 1rem; font-weight: 800; margin-bottom: .2rem; }
+.corr-plan .price { font-size: 1.5rem; font-weight: 800; color: var(--primary); margin: .5rem 0 .1rem; }
+[data-theme="dark"] .corr-plan .price { color: var(--gold); }
+.corr-plan .price small { font-size: .75rem; font-weight: 600; color: var(--text-light); }
+.corr-plan ul { list-style: none; margin: .7rem 0 1rem; font-size: .82rem; color: var(--text-light); }
+.corr-plan ul li { padding: .2rem 0; }
+.corr-plan ul li::before { content: '✓ '; color: var(--green); font-weight: 800; }
+
+/* ----- فهرست نرخ خدمات ----- */
+.corr-prices { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+.corr-price-row { display: flex; justify-content: space-between; align-items: center; gap: .8rem; padding: .85rem 1rem; border-bottom: 1px solid var(--border); }
+.corr-price-row:last-child { border-bottom: none; }
+.corr-price-row b { font-size: .9rem; }
+.corr-price-row small { display: block; color: var(--text-light); font-size: .76rem; }
+.price-chip { white-space: nowrap; font-weight: 800; font-size: .85rem; color: var(--primary); background: rgba(15,52,96,.08); padding: .25rem .7rem; border-radius: 99px; }
+[data-theme="dark"] .price-chip { color: var(--gold); background: rgba(212,169,78,.12); }
+
+/* ----- باکس‌ها ----- */
+.corr-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; box-shadow: var(--shadow); }
+.corr-box + .corr-box { margin-top: .8rem; }
+.corr-track { display: flex; gap: .5rem; }
+.corr-track input { flex: 1; direction: ltr; text-align: center; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: .7rem; border-radius: 10px; border: 1.5px solid var(--border); font-family: inherit; background: var(--surface); color: var(--text); }
+
+/* ----- وضعیت‌ها (چیپ رنگی) ----- */
+.st-chip { display: inline-block; padding: .18rem .65rem; border-radius: 99px; font-size: .72rem; font-weight: 800; white-space: nowrap; }
+.st-0 { background: #e0e7ff; color: #3730a3; }      /* ثبت شد */
+.st-1 { background: #fef3c7; color: #92400e; }      /* در حال بررسی */
+.st-2 { background: #dbeafe; color: #1e40af; }      /* ارجاع شد */
+.st-3 { background: #ede9fe; color: #5b21b6; }      /* پاسخ اداره */
+.st-4 { background: #cffafe; color: #155e75; }      /* پاسخ ارسال شد */
+.st-5 { background: #dcfce7; color: #166534; }      /* انجام شد */
+.st-6 { background: #fee2e2; color: #991b1b; }      /* لغو شد */
+.pay-chip { font-size: .7rem; font-weight: 700; padding: .12rem .5rem; border-radius: 99px; background: rgba(100,116,139,.15); color: var(--text-light); }
+.pay-chip.warn { background: #fef3c7; color: #92400e; }
+.pay-chip.ok { background: #dcfce7; color: #166534; }
+
+/* ----- نوار پیشرفت مراحل ----- */
+.stage-bar { display: flex; align-items: flex-start; margin: 1rem 0 1.2rem; }
+.stage-bar .stg { flex: 1; text-align: center; position: relative; font-size: .68rem; color: var(--text-light); }
+.stage-bar .stg::before { content: ''; position: absolute; top: 11px; right: 50%; width: 100%; height: 3px; background: var(--border); z-index: 0; }
+.stage-bar .stg:last-child::before { display: none; }
+.stage-bar .dot { position: relative; z-index: 1; width: 24px; height: 24px; margin: 0 auto .25rem; border-radius: 50%; background: var(--border); color: #fff; display: flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 800; }
+.stage-bar .stg.done .dot { background: var(--green); }
+.stage-bar .stg.done::before { background: var(--green); }
+.stage-bar .stg.now .dot { background: var(--gold); box-shadow: 0 0 0 5px rgba(212,169,78,.25); }
+.stage-bar .stg.now { color: var(--text); font-weight: 800; }
+
+/* ----- فهرست درخواست‌ها ----- */
+.corr-req { display: block; width: 100%; text-align: right; font-family: inherit; color: inherit; cursor: pointer; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: .85rem 1rem; margin-bottom: .6rem; box-shadow: var(--shadow); transition: var(--transition); }
+.corr-req:hover { border-color: var(--gold); transform: translateY(-1px); }
+.corr-req.unread { border-right: 4px solid var(--gold); }
+.corr-req .row1 { display: flex; justify-content: space-between; gap: .6rem; align-items: center; }
+.corr-req .code { direction: ltr; font-weight: 800; font-size: .8rem; color: var(--text-light); letter-spacing: .04em; }
+.corr-req .subj { font-weight: 700; font-size: .92rem; margin: .25rem 0; }
+.corr-req .meta { font-size: .76rem; color: var(--text-light); display: flex; gap: .7rem; flex-wrap: wrap; align-items: center; }
+
+/* ----- خط زمانی ----- */
+.timeline { position: relative; margin: .8rem 0; padding-right: 1.2rem; }
+.timeline::before { content: ''; position: absolute; right: 5px; top: 6px; bottom: 6px; width: 2px; background: var(--border); }
+.tl-item { position: relative; margin-bottom: .9rem; }
+.tl-item::before { content: ''; position: absolute; right: -1.2rem; top: .4rem; width: 12px; height: 12px; border-radius: 50%; background: var(--surface); border: 3px solid var(--gold); }
+.tl-item.office::before { border-color: #3b82f6; }
+.tl-item.company::before { border-color: var(--green); }
+.tl-item .tl-head { display: flex; justify-content: space-between; gap: .5rem; font-size: .8rem; }
+.tl-item .tl-head b { font-weight: 800; }
+.tl-item .tl-head span { color: var(--text-light); font-size: .72rem; white-space: nowrap; }
+.tl-item .tl-text { font-size: .84rem; margin-top: .2rem; white-space: pre-wrap; word-break: break-word; }
+.tl-item .tl-who { font-size: .72rem; color: var(--text-light); }
+.tl-item.hidden-ev { opacity: .6; }
+.tl-flags { display: flex; gap: .3rem; flex-wrap: wrap; margin-top: .3rem; }
+.tl-flags button { font-family: inherit; font-size: .68rem; padding: .1rem .5rem; border-radius: 99px; border: 1px dashed var(--border); background: transparent; color: var(--text-light); cursor: pointer; }
+.tl-flags button.on { border-style: solid; border-color: var(--green); color: var(--green); }
+
+/* ----- پیوست‌ها ----- */
+.att-list { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .4rem; }
+.att-chip { display: inline-flex; align-items: center; gap: .3rem; font-size: .74rem; padding: .25rem .6rem; border-radius: 8px; background: rgba(15,52,96,.07); color: var(--text); border: 1px solid var(--border); }
+.att-chip a { color: var(--primary); font-weight: 700; }
+[data-theme="dark"] .att-chip a { color: var(--gold); }
+.att-chip button { border: none; background: none; color: var(--red); cursor: pointer; font-size: .9rem; line-height: 1; }
+.upload-zone { display: block; text-align: center; border: 1.5px dashed var(--border); border-radius: 10px; padding: .8rem; font-size: .82rem; color: var(--text-light); cursor: pointer; transition: var(--transition); }
+.upload-zone:hover { border-color: var(--gold); color: var(--text); }
+.privacy-note { font-size: .72rem; color: var(--text-light); background: rgba(212,169,78,.1); border: 1px solid rgba(212,169,78,.3); border-radius: 8px; padding: .4rem .7rem; margin-top: .5rem; }
+
+/* ----- انتخاب‌گرهای کارتی (اداره/خدمت/طرح) ----- */
+.pick-list { max-height: 210px; overflow-y: auto; border: 1.5px solid var(--border); border-radius: 10px; background: var(--surface); }
+.pick-group { position: sticky; top: 0; background: var(--bg); font-size: .7rem; font-weight: 800; color: var(--text-light); padding: .25rem .8rem; border-bottom: 1px solid var(--border); }
+.pick-item { display: flex; align-items: center; gap: .6rem; padding: .6rem .8rem; border-bottom: 1px solid var(--border); cursor: pointer; font-size: .85rem; }
+.pick-item:last-child { border-bottom: none; }
+.pick-item:hover { background: rgba(212,169,78,.08); }
+.pick-item.sel { background: rgba(212,169,78,.16); font-weight: 700; }
+.pick-item .pk-main { flex: 1; min-width: 0; }
+.pick-item small { display: block; color: var(--text-light); font-weight: 400; font-size: .72rem; }
+.pick-item input { accent-color: var(--gold); }
+.cost-line { margin-top: .5rem; font-size: .82rem; padding: .5rem .8rem; border-radius: 8px; background: rgba(15,52,96,.06); }
+.cost-line.good { background: #dcfce7; color: #166534; }
+
+/* ----- کارت پرداخت ----- */
+.pay-box { border: 1.5px solid var(--gold); background: rgba(212,169,78,.08); border-radius: 12px; padding: .9rem; margin: .8rem 0; }
+.pay-box .card-no { direction: ltr; font-size: 1.15rem; font-weight: 800; letter-spacing: .08em; text-align: center; margin: .4rem 0; }
+.pay-box .card-meta { text-align: center; font-size: .78rem; color: var(--text-light); }
+.sub-card { background: linear-gradient(135deg, rgba(212,169,78,.14), rgba(15,52,96,.06)); border: 1.5px solid var(--gold); border-radius: 14px; padding: 1rem; }
+.sub-card .bar { height: 8px; border-radius: 99px; background: var(--border); overflow: hidden; margin-top: .5rem; }
+.sub-card .bar i { display: block; height: 100%; background: var(--gold); border-radius: 99px; }
+
+/* ----- دسته‌بندی مدیر ----- */
+.corr-tabs { display: flex; gap: .4rem; overflow-x: auto; padding: .2rem 0 .6rem; margin-bottom: .6rem; }
+.corr-tabs button { flex-shrink: 0; font-family: inherit; border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: .4rem .9rem; border-radius: 99px; font-size: .8rem; font-weight: 700; cursor: pointer; }
+.corr-tabs button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.corr-tabs .cnt { display: inline-block; background: var(--red); color: #fff; border-radius: 99px; font-size: .66rem; padding: 0 .4rem; margin-right: .25rem; }
+.status-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: .6rem; }
+.status-card { cursor: pointer; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: .8rem; text-align: center; transition: var(--transition); font-family: inherit; color: inherit; }
+.status-card:hover { border-color: var(--gold); transform: translateY(-2px); }
+.status-card b { display: block; font-size: 1.5rem; }
+.status-card span { font-size: .75rem; color: var(--text-light); }
+.office-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: .6rem; }
+.office-card { cursor: pointer; text-align: right; font-family: inherit; color: inherit; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: .8rem; transition: var(--transition); }
+.office-card:hover { border-color: var(--gold); }
+.office-card b { font-size: .86rem; display: block; }
+.office-card small { color: var(--text-light); font-size: .74rem; }
+.filter-row { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .8rem; }
+.filter-row select, .filter-row input { padding: .5rem .7rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: inherit; font-size: .82rem; }
+.filter-row input[type=search] { flex: 1; min-width: 160px; }
+.edit-row { display: grid; grid-template-columns: 1fr; gap: .5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: .8rem; margin-bottom: .6rem; }
+.edit-row .er-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .5rem; }
+.edit-row label { font-size: .72rem; font-weight: 700; color: var(--text-light); display: block; margin-bottom: .15rem; }
+.edit-row input, .edit-row select, .edit-row textarea { width: 100%; padding: .45rem .6rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: inherit; font-size: .84rem; }
+.edit-row .er-actions { display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; }
+.setup-banner { border: 2px dashed var(--gold); background: rgba(212,169,78,.1); border-radius: 14px; padding: 1.2rem; text-align: center; margin-bottom: 1rem; }
+
+/* ----- مودال بزرگ‌تر برای جزئیات ----- */
+.modal.wide { max-width: 720px; }
+
+/* ----- پورتال ادارات ----- */
+.office-login { max-width: 400px; margin: 3rem auto; }
+.office-hero { background: linear-gradient(135deg, #0f3460, #0a2647); color: #fff; border-radius: 16px; padding: 1rem 1.2rem; margin: 1rem 0; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.office-hero b { font-size: 1.05rem; }
+.office-hero small { color: rgba(255,255,255,.7); display: block; }
+
+@media (max-width: 640px) {
+  .corr-hero { padding: 1.5rem 1.1rem; }
+  .corr-hero h1 { font-size: 1.25rem; }
+  .modal.wide { max-width: 100%; }
+}

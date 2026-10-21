@@ -417,3 +417,25 @@ html { scroll-behavior: smooth; }
 }
 .header-toggle-btn:hover { background: rgba(255,255,255,0.22); transform: scale(1.08); }
 .header-toggle-btn.lang-toggle-inline { font-size: 0.72rem; font-weight: 800; }
+
+
+/* ===== منوی «بیشتر» و کارت دستیار اداری (ماژول امور اداری) ===== */
+a.tab-btn { text-decoration: none; display: inline-flex; align-items: center; }
+.tab-corr { background: linear-gradient(135deg, var(--gold), var(--gold-hover)) !important; color: #fff !important; font-weight: 800; }
+.more-btn { border: 1.5px dashed var(--border); }
+.more-backdrop { position: fixed; inset: 0; z-index: 299; background: rgba(0,0,0,.25); display: none; }
+.more-menu { position: fixed; right: 0; left: 0; z-index: 300; display: none; padding: 0 .6rem; }
+.more-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 0 0 16px 16px; box-shadow: var(--shadow-hover); padding: .8rem; max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: .5rem; animation: moreIn .18s ease; }
+@keyframes moreIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.more-item { font-family: inherit; text-align: center; padding: .75rem .4rem; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: .82rem; font-weight: 700; cursor: pointer; transition: var(--transition); }
+.more-item:hover { border-color: var(--gold); }
+.more-item.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.corr-promo { display: flex; align-items: center; gap: .8rem; margin: 1rem 0; padding: .9rem 1rem; border-radius: 16px; text-decoration: none; color: var(--text);
+    background: linear-gradient(135deg, rgba(212,169,78,.16), rgba(15,52,96,.06)); border: 1.5px solid var(--gold); box-shadow: var(--shadow); transition: var(--transition); }
+.corr-promo:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+.corr-promo .cp-ic { font-size: 1.9rem; }
+.corr-promo .cp-tx { flex: 1; min-width: 0; }
+.corr-promo .cp-tx b { display: block; font-size: .95rem; color: var(--primary); }
+[data-theme="dark"] .corr-promo .cp-tx b { color: var(--gold); }
+.corr-promo .cp-tx span { font-size: .78rem; color: var(--text-light); }
+.corr-promo .cp-go { font-size: 1.2rem; color: var(--gold-hover); font-weight: 800; }

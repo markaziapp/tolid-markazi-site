@@ -174,6 +174,7 @@ function switchTab(tab) {
     void target.offsetWidth; // اجبار به بازچینش برای اجرای دوبارهٔ انیمیشن
     target.style.animation = '';
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    if (typeof syncMoreMenu === 'function') syncMoreMenu(tab);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     trackView('/' + tab);
     if (tab === 'offers') loadOffers();
@@ -1018,3 +1019,30 @@ window.addEventListener('DOMContentLoaded', () => {
         }));
     }).observe(document.body, { childList: true, subtree: true });
 })();
+
+
+// ------------------------------------------------------------------
+// منوی «بیشتر» — تب‌های ثانویه در یک پنل منظم (برای شلوغ نشدن نوار تب‌ها)
+// ------------------------------------------------------------------
+function toggleMoreMenu(ev) {
+    if (ev) ev.stopPropagation();
+    const m = document.getElementById('moreMenu');
+    if (!m) return;
+    if (m.style.display === 'block') { closeMoreMenu(); return; }
+    const nav = document.querySelector('nav.tabs');
+    m.style.top = (nav ? nav.getBoundingClientRect().bottom : 0) + 'px';
+    m.style.display = 'block';
+    document.getElementById('moreBackdrop').style.display = 'block';
+}
+function closeMoreMenu() {
+    const m = document.getElementById('moreMenu'), b = document.getElementById('moreBackdrop');
+    if (m) m.style.display = 'none';
+    if (b) b.style.display = 'none';
+}
+function syncMoreMenu(tab) {
+    let inMore = false;
+    document.querySelectorAll('.more-item').forEach(b => { const on = b.dataset.tab === tab; b.classList.toggle('active', on); if (on) inMore = true; });
+    const mb = document.getElementById('moreBtn');
+    if (mb) mb.classList.toggle('active', inMore);
+}
+window.addEventListener('scroll', closeMoreMenu, { passive: true });
