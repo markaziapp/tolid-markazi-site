@@ -3,7 +3,7 @@
 // صفحات و فایل‌های اصلی کش می‌شوند؛ درخواست‌های API هرگز کش نمی‌شوند
 // (چون داده‌ها باید همیشه تازه باشند)
 // ===================================================================
-const CACHE_NAME = 'hamtasanat-shell-v8';
+const CACHE_NAME = 'hamtasanat-shell-v9';
 const APP_SHELL = [
   './',
   './index.html',
@@ -21,11 +21,11 @@ const APP_SHELL = [
   './assets/support-widget.js?v=8',
   './corr.html',
   './office.html',
-  './assets/corr.css?v=8',
-  './assets/corr-common.js?v=8',
+  './assets/corr.css?v=9',
+  './assets/corr-common.js?v=9',
   './assets/corr.js?v=8',
   './assets/office.js?v=8',
-  './assets/admin-corr.js?v=8',
+  './assets/admin-corr.js?v=9',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
 ];
