@@ -193,3 +193,22 @@
   .corr-hero h1 { font-size: 1.25rem; }
   .modal.wide { max-width: 100%; }
 }
+
+
+/* ===== اصلاح: قانون عمومی ".form-group input {width:100%}" نباید رادیو/چک‌باکس را بکشد ===== */
+.form-group .pick-item input[type="radio"], .pick-item input[type="radio"],
+.corr-main input[type="checkbox"], .corr-main input[type="radio"],
+.modal input[type="checkbox"], .modal input[type="radio"], .filter-row input[type="checkbox"] {
+  width: 18px; height: 18px; min-width: 18px; flex: 0 0 18px; padding: 0; margin: 0; border: none; background: none; box-shadow: none;
+}
+.pick-item { align-items: center; }
+.pick-item .pk-main { line-height: 1.6; word-break: normal; overflow-wrap: anywhere; }
+.pick-item .price-chip { flex: 0 0 auto; font-size: .76rem; }
+.pick-list { -webkit-overflow-scrolling: touch; overflow-x: hidden; }
+@media (min-width: 700px) { .pick-list { max-height: 260px; } }
+
+/* افزودن فایل با لینک (جایگزین آپلود) */
+.link-add { display: flex; gap: .4rem; margin-top: .45rem; }
+.form-group .link-add input, .link-add input { flex: 1; width: auto; min-width: 0; padding: .45rem .6rem; border: 1.5px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font-family: inherit; font-size: .78rem; direction: ltr; text-align: left; }
+.link-add button { flex: 0 0 auto; font-family: inherit; font-size: .76rem; font-weight: 700; padding: .4rem .8rem; border-radius: 8px; border: 1.5px solid var(--border); background: var(--bg); color: var(--text); cursor: pointer; }
+.link-add button:hover { border-color: var(--gold); }

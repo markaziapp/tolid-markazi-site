@@ -418,6 +418,9 @@
                 ${chk('allow_without_subscription', 'واحدهای بدون اشتراک هم بتوانند درخواست ثبت کنند (با پرداخت نرخ هر خدمت)')}
                 ${chk('first_request_free', 'اولین درخواست هر واحد رایگان باشد (قلاب جذب)')}</div>
             <button class="btn btn-gold" onclick="CORRADM.saveSettings()">ذخیره تنظیمات</button>
+            <div class="corr-box" style="margin-top:1.2rem;"><b>🔍 سلامت آپلود فایل (GitHub)</b>
+                <p style="font-size:.76rem;color:var(--text-light);margin:.3rem 0 .6rem;">اگر آپلود عکس/PDF خطا می‌دهد، این تست می‌گوید توکن معتبر است یا منقضی شده.</p>
+                <button class="btn btn-outline btn-sm" onclick="CORRADM.checkGithub(this)">اجرای تست</button><div id="ghCheckResult" style="margin-top:.6rem;font-size:.84rem;"></div></div>
             <div class="corr-box" style="margin-top:1.2rem;"><b>🗄️ پشتیبان و پاک‌سازی (فقط امور اداری)</b>
                 <p style="font-size:.76rem;color:var(--text-light);margin:.3rem 0 .6rem;">پشتیبان اصلی سایت، جدول‌های این ماژول را شامل نمی‌شود؛ از این دکمه‌ها استفاده کنید.</p>
                 <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
@@ -435,6 +438,15 @@
         try { await apiSend('PUT', '/api/admin/corr/settings', o); ok(); } catch (e) { err(e); }
     }
 
+    async function checkGithub(btn) {
+        const box = $('ghCheckResult'); box.innerHTML = 'در حال بررسی...'; btn.disabled = true;
+        try {
+            const r = await apiGet('/api/admin/corr/github-check');
+            box.innerHTML = `<div style="padding:.6rem;border-radius:8px;background:${r.ok ? '#dcfce7' : '#fee2e2'};color:${r.ok ? '#166534' : '#991b1b'};">${r.ok ? '✅' : '❌'} ${esc(r.message)}</div>`
+                + (r.expires ? `<div style="font-size:.76rem;color:var(--text-light);margin-top:.3rem;">تاریخ انقضای توکن: <b style="direction:ltr;display:inline-block;">${esc(r.expires)}</b></div>` : '');
+        } catch (e) { box.innerHTML = `<span style="color:var(--red)">${esc(e.message)}</span>`; }
+        btn.disabled = false;
+    }
     async function downloadBackup() {
         try {
             const d = await apiGet('/api/admin/corr/backup');
@@ -464,5 +476,5 @@
     if (typeof origNotif === 'function') window.loadNotifications = async function () { try { await origNotif(); } finally { refreshBadge(); } };
 
     window.loadCorr = loadCorr;
-    window.CORRADM = { runSetup, setTab, applyFilters, debounceSearch, openDetail, closeModal, saveDetail, sendMessage, toggleEv, setSubFilter, subAction, searchCompany, grantSub, saveRow, delRow, addRow, addUser, resetPass, toggleUser, delUser, saveSettings, copy, refreshBadge, downloadBackup, restoreBackup, wipeRequests };
+    window.CORRADM = { runSetup, setTab, applyFilters, debounceSearch, openDetail, closeModal, saveDetail, sendMessage, toggleEv, setSubFilter, subAction, searchCompany, grantSub, saveRow, delRow, addRow, addUser, resetPass, toggleUser, delUser, saveSettings, copy, refreshBadge, downloadBackup, restoreBackup, wipeRequests, checkGithub };
 })();

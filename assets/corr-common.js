@@ -89,7 +89,12 @@
         const fd = new FormData(); fd.append('file', f, f.name);
         const res = await fetch(api('/api/upload'), { method: 'POST', body: fd });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'آپلود ناموفق بود');
+        if (!res.ok) {
+            const raw = String(data.error || '');
+            // خطای ۴۰۱/توکن گیت‌هاب: پیام قابل‌فهم + مسیر جایگزین (لینک) به‌جای متن فنی
+            if (/\(401\)|Bad credentials|توکن|GITHUB_TOKEN/i.test(raw)) throw new Error('آپلود فایل فعلاً در دسترس نیست (مشکل دسترسی سرور). می‌توانید «لینک فایل» را در کادر زیر وارد کنید و موضوع را به پشتیبانی اطلاع دهید.');
+            throw new Error(raw || 'آپلود ناموفق بود');
+        }
         return data.url;
     }
 
@@ -100,6 +105,8 @@
         uploaders[id] = { items: [], max };
         el.innerHTML = `<label class="upload-zone" for="${id}_in">${label}</label>
             <input type="file" id="${id}_in" accept="image/*,.pdf" ${max > 1 ? 'multiple' : ''} hidden>
+            <div class="link-add"><input type="url" id="${id}_url" placeholder="یا لینک فایل را اینجا بچسبانید (https://...)"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();CX.addLink('${id}')}"><button type="button" onclick="CX.addLink('${id}')">افزودن لینک</button></div>
             <div class="att-list" id="${id}_list"></div>`;
         el.querySelector('input').addEventListener('change', async (e) => {
             const u = uploaders[id];
@@ -120,6 +127,14 @@
             : `<span class="att-chip">📎 <a href="${esc(it.url)}" target="_blank" rel="noopener">${esc(it.name.slice(-24))}</a>
                  <button type="button" title="حذف" onclick="CX.removeUpload('${id}',${i})">×</button></span>`).join('');
     }
+    function addLink(id) {
+        const u = uploaders[id], inp = document.getElementById(id + '_url'); if (!u || !inp) return;
+        const url = inp.value.trim();
+        if (!/^https?:\/\/\S+$/i.test(url)) { alert('لینک معتبر (شروع‌شده با https://) وارد کنید'); return; }
+        if (u.items.length >= u.max) { alert(`حداکثر ${u.max} فایل`); return; }
+        u.items.push({ name: decodeURIComponent(url.split('/').filter(Boolean).pop() || 'لینک فایل').slice(-24), url, uploading: false });
+        inp.value = ''; renderUploader(id);
+    }
     function removeUpload(id, i) { uploaders[id].items.splice(i, 1); renderUploader(id); }
     const uploaderUrls = (id) => (uploaders[id] ? uploaders[id].items.filter((i) => i.url).map((i) => i.url) : []);
     const uploaderBusy = (id) => (uploaders[id] ? uploaders[id].items.some((i) => i.uploading) : false);
@@ -127,6 +142,6 @@
 
     window.CX = {
         STATUSES, STAGES, esc, fa, api, fmtDate, statusClass, statusChip, stageIndex, stageBar, payChip, attHtml, timeline, copyText,
-        uploadFile, mountUploader, removeUpload, uploaderUrls, uploaderBusy, uploaderClear,
+        uploadFile, mountUploader, addLink, removeUpload, uploaderUrls, uploaderBusy, uploaderClear,
     };
 })();
